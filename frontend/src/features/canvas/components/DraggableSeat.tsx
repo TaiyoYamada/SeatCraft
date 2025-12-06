@@ -15,6 +15,9 @@ interface DraggableSeatProps {
     onDrop: () => void;
     onUnassign: () => void;
     onToggleLock: () => void;
+    onTapAssign?: () => void;  // For mobile tap-to-assign
+    isSelectingMember?: boolean; // Whether a member is currently selected for assignment
+    isMobile?: boolean;
     zoom: number;
 }
 
@@ -26,6 +29,9 @@ export function DraggableSeat({
     onDrop,
     onUnassign,
     onToggleLock,
+    onTapAssign,
+    isSelectingMember = false,
+    isMobile = false,
     zoom,
 }: DraggableSeatProps) {
     const [isDragging, setIsDragging] = useState(false);
@@ -146,7 +152,17 @@ export function DraggableSeat({
             onDragOver={handleDragOver}
             onDrop={handleDropEvent}
             onContextMenu={handleContextMenu}
-            onClick={() => !isDragging && setShowMenu(!showMenu)}
+            onClick={() => {
+                if (isDragging) return;
+                // Mobile tap-to-assign: if a member is selected, allow assignment (even if seat has someone)
+                if (isMobile && isSelectingMember && onTapAssign) {
+                    onTapAssign();
+                } else if (isMobile && !assignedMember && onTapAssign) {
+                    onTapAssign();
+                } else {
+                    setShowMenu(!showMenu);
+                }
+            }}
         >
             <div className={cn(
                 "w-full h-full flex flex-col items-center justify-center p-1 rounded-lg overflow-hidden relative transition-colors duration-200 border border-[var(--color-seat-border)]",

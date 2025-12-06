@@ -15,6 +15,7 @@ export function Canvas() {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const [draggedMemberId, setDraggedMemberId] = useState<string | null>(null);
+    const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null); // For mobile tap-to-assign
     const [showMemberPanel, setShowMemberPanel] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -101,12 +102,19 @@ export function Canvas() {
 
     const handleMemberDrop = useCallback(
         (seatId: string) => {
+            // Handle drag & drop (desktop)
             if (draggedMemberId) {
                 assignMemberToSeat(seatId, draggedMemberId);
                 setDraggedMemberId(null);
             }
+            // Handle tap-to-assign (mobile)
+            else if (selectedMemberId) {
+                assignMemberToSeat(seatId, selectedMemberId);
+                setSelectedMemberId(null);
+                if (isMobile) setShowMemberPanel(false);
+            }
         },
-        [draggedMemberId, assignMemberToSeat]
+        [draggedMemberId, selectedMemberId, isMobile, assignMemberToSeat]
     );
 
     const getAssignedMember = useCallback(
@@ -143,6 +151,8 @@ export function Canvas() {
                 members={unassignedMembers}
                 onDragStart={setDraggedMemberId}
                 onDragEnd={() => setDraggedMemberId(null)}
+                selectedMemberId={selectedMemberId}
+                onSelect={setSelectedMemberId}
                 isOpen={showMemberPanel}
                 isMobile={isMobile}
                 onClose={() => setShowMemberPanel(false)}
@@ -235,6 +245,9 @@ export function Canvas() {
                                 onDrop={() => handleMemberDrop(seat.id)}
                                 onUnassign={() => unassignSeat(seat.id)}
                                 onToggleLock={() => toggleSeatLock(seat.id)}
+                                onTapAssign={() => handleMemberDrop(seat.id)}
+                                isSelectingMember={!!selectedMemberId}
+                                isMobile={isMobile}
                                 zoom={viewport.zoom}
                             />
                         ))}

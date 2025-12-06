@@ -113,53 +113,91 @@ export default function CraftPage() {
 
     return (
         <div className="h-[calc(100vh-4rem)] mt-16 flex flex-col">
-            {/* Toolbar */}
-            <div className="bg-background border-b border-border p-2 sm:p-4 shadow-sm">
+            {/* Compact Toolbar */}
+            <div className="bg-background border-b border-border p-2 sm:p-3 shadow-sm">
                 <div className="max-w-7xl mx-auto">
-                    {/* Top row */}
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 sm:gap-4">
-                            <Button variant="ghost" size="sm" asChild>
+                    {/* Main toolbar row */}
+                    <div className="flex items-center justify-between gap-2">
+                        {/* Left: Back button */}
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3" asChild>
                                 <Link href="/layouts/templates">
-                                    <ArrowLeft className="w-4 h-4 mr-1" />
-                                    戻る
+                                    <ArrowLeft className="w-4 h-4" />
+                                    <span className="hidden sm:inline ml-1">戻る</span>
                                 </Link>
                             </Button>
-                            <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
-                                座席: {seats.length} | 配置済み: {assignments.length} / {members.length}
-                            </span>
+                            <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="bg-secondary px-2 py-1 rounded">座席: {seats.length}</span>
+                                <span className="bg-secondary px-2 py-1 rounded">配置: {assignments.length}/{members.length}</span>
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowOptions(!showOptions)}
-                            >
+                        {/* Right: Settings and Reset (Desktop) */}
+                        <div className="hidden sm:flex items-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setShowOptions(!showOptions)}>
                                 <Settings className="w-4 h-4 mr-1" />
                                 設定
                             </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={resetViewport}
-                            >
+                            <Button variant="ghost" size="sm" onClick={resetViewport}>
                                 <RotateCcw className="w-4 h-4 mr-1" />
                                 リセット
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleShuffle}
+                                disabled={members.length === 0 || seats.length === 0}
+                            >
+                                <Shuffle className="w-4 h-4 mr-1" />
+                                シャッフル
+                            </Button>
+                            <Button
+                                onClick={handleViewResults}
+                                disabled={isProcessing || assignments.length === 0}
+                                size="sm"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                        処理中...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="w-4 h-4 mr-1" />
+                                        結果を見る
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
+                        {/* Right: Mobile icons */}
+                        <div className="flex sm:hidden items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowOptions(!showOptions)}>
+                                <Settings className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={resetViewport}>
+                                <RotateCcw className="w-4 h-4" />
                             </Button>
                         </div>
                     </div>
 
-                    {/* Options panel */}
+                    {/* Mobile stats bar */}
+                    <div className="flex sm:hidden items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <span className="bg-secondary px-2 py-1 rounded-full">座席: {seats.length}</span>
+                        <span className="bg-secondary px-2 py-1 rounded-full">配置: {assignments.length}/{members.length}</span>
+                    </div>
+
+                    {/* Options panel (collapsible) */}
                     {showOptions && (
-                        <div className="mt-3 p-3 bg-secondary/50 rounded-lg animate-in fade-in slide-in-from-top-2">
-                            <label className="block text-xs sm:text-sm font-medium mb-2">
-                                男女配置ルール
-                            </label>
+                        <div className="mt-2 p-3 bg-secondary/50 rounded-lg animate-in fade-in slide-in-from-top-2">
+                            <label className="block text-xs font-medium mb-2">男女配置ルール</label>
                             <select
                                 value={genderMode}
                                 onChange={(e) => setGenderMode(e.target.value as GenderMode)}
-                                className="flex h-9 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                             >
                                 {GENDER_MODES.map((mode) => (
                                     <option key={mode.value} value={mode.value}>
@@ -170,48 +208,9 @@ export default function CraftPage() {
                         </div>
                     )}
 
-                    {/* Mobile stats */}
-                    <div className="mt-2 text-xs text-muted-foreground sm:hidden">
-                        座席: {seats.length} | 配置済み: {assignments.length} / {members.length}
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="mt-3 flex flex-wrap gap-2 justify-end">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleShuffle}
-                            disabled={members.length === 0 || seats.length === 0}
-                            className="flex-1 sm:flex-none"
-                        >
-                            <Shuffle className="w-4 h-4 mr-1" />
-                            シャッフル
-                        </Button>
-                        <Button
-                            onClick={handleViewResults}
-                            disabled={isProcessing || assignments.length === 0}
-                            size="sm"
-                            className="flex-1 sm:flex-none"
-                        >
-                            {isProcessing ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                    </svg>
-                                    処理中...
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="w-4 h-4 mr-1" />
-                                    結果を見る
-                                </>
-                            )}
-                        </Button>
-                    </div>
-
+                    {/* Error message */}
                     {error && (
-                        <div className="mt-2 p-2 bg-destructive/10 text-destructive rounded text-xs sm:text-sm text-center">
+                        <div className="mt-2 p-2 bg-destructive/10 text-destructive rounded text-xs text-center">
                             {error}
                         </div>
                     )}
@@ -219,8 +218,43 @@ export default function CraftPage() {
             </div>
 
             {/* Canvas */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden relative">
                 <Canvas />
+            </div>
+
+            {/* Mobile Bottom Action Bar */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur border-t border-border z-40">
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        className="flex-1 h-12"
+                        onClick={handleShuffle}
+                        disabled={members.length === 0 || seats.length === 0}
+                    >
+                        <Shuffle className="w-5 h-5 mr-2" />
+                        シャッフル
+                    </Button>
+                    <Button
+                        className="flex-1 h-12"
+                        onClick={handleViewResults}
+                        disabled={isProcessing || assignments.length === 0}
+                    >
+                        {isProcessing ? (
+                            <>
+                                <svg className="animate-spin mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                処理中...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-5 h-5 mr-2" />
+                                結果を見る
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
         </div>
     );

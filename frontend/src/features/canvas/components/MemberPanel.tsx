@@ -10,12 +10,14 @@ interface MemberPanelProps {
     members: Member[];
     onDragStart: (memberId: string) => void;
     onDragEnd: () => void;
+    selectedMemberId: string | null;
+    onSelect: (memberId: string | null) => void;
     isOpen: boolean;
     isMobile: boolean;
     onClose: () => void;
 }
 
-export function MemberPanel({ members, onDragStart, onDragEnd, isOpen, isMobile, onClose }: MemberPanelProps) {
+export function MemberPanel({ members, onDragStart, onDragEnd, selectedMemberId, onSelect, isOpen, isMobile, onClose }: MemberPanelProps) {
     if (!isOpen) return null;
 
     // Matches DraggableSeat styling for consistency
@@ -59,45 +61,64 @@ export function MemberPanel({ members, onDragStart, onDragEnd, isOpen, isMobile,
                         <p className="text-sm font-medium">全員配置済み！</p>
                     </div>
                 ) : (
-                    members.map((member) => (
-                        <div
-                            key={member.id}
-                            draggable
-                            onDragStart={(e) => {
-                                onDragStart(member.id);
-                                // Optional: Set custom drag image here if needed
-                            }}
-                            onDragEnd={onDragEnd}
-                            className={cn(
-                                "group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 cursor-grab active:cursor-grabbing hover:shadow-sm",
-                                "bg-card hover:border-[var(--color-accent)]/50",
-                                member.gender === 'male' ? "hover:bg-[var(--color-seat-male)]/50" :
-                                    member.gender === 'female' ? "hover:bg-[var(--color-seat-female)]/50" :
-                                        "hover:bg-secondary/50"
-                            )}
-                        >
-                            <div className={cn(
-                                "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 select-none border",
-                                getGenderStyle(member.gender)
-                            )}>
-                                {(member.nickname || member.name).charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0 select-none">
-                                <p className="font-medium text-sm text-foreground truncate">
-                                    {member.nickname || member.name}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className={cn(
-                                        "text-[10px] px-2 py-0.5 rounded-full font-medium border",
-                                        getGenderStyle(member.gender)
-                                    )}>
-                                        {getGenderLabel(member.gender)}
-                                    </span>
+                    members.map((member) => {
+                        const isSelected = selectedMemberId === member.id;
+                        return (
+                            <div
+                                key={member.id}
+                                draggable={!isMobile}
+                                onDragStart={(e) => {
+                                    if (!isMobile) onDragStart(member.id);
+                                }}
+                                onDragEnd={() => !isMobile && onDragEnd()}
+                                onClick={() => {
+                                    // Toggle selection on tap
+                                    if (isSelected) {
+                                        onSelect(null);
+                                    } else {
+                                        onSelect(member.id);
+                                    }
+                                }}
+                                className={cn(
+                                    "group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
+                                    isMobile ? "cursor-pointer active:scale-[0.98]" : "cursor-grab active:cursor-grabbing",
+                                    "hover:shadow-sm",
+                                    isSelected
+                                        ? "bg-[var(--color-accent)]/10 border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/30"
+                                        : "bg-card hover:border-[var(--color-accent)]/50",
+                                    !isSelected && member.gender === 'male' ? "hover:bg-[var(--color-seat-male)]/50" :
+                                        !isSelected && member.gender === 'female' ? "hover:bg-[var(--color-seat-female)]/50" :
+                                            !isSelected ? "hover:bg-secondary/50" : ""
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 select-none border",
+                                    isSelected ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]" : getGenderStyle(member.gender)
+                                )}>
+                                    {isSelected ? "✓" : (member.nickname || member.name).charAt(0).toUpperCase()}
                                 </div>
+                                <div className="flex-1 min-w-0 select-none">
+                                    <p className="font-medium text-sm text-foreground truncate">
+                                        {member.nickname || member.name}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className={cn(
+                                            "text-[10px] px-2 py-0.5 rounded-full font-medium border",
+                                            getGenderStyle(member.gender)
+                                        )}>
+                                            {getGenderLabel(member.gender)}
+                                        </span>
+                                        {isSelected && (
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-[var(--color-accent)] text-white">
+                                                座席をタップ
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                {!isMobile && <GripVertical className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />}
                             </div>
-                            <GripVertical className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </aside>
