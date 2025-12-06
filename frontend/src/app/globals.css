@@ -1,257 +1,108 @@
 @import "tailwindcss";
 
-:root {
-  --background: #fafbfc;
-  --foreground: #1a1a2e;
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --secondary: #f1f5f9;
-  --accent: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --card-bg: #ffffff;
-  --border: #e2e8f0;
-  --text-muted: #64748b;
-}
+@theme {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-secondary: var(--secondary);
-  --color-accent: var(--accent);
-  --color-danger: var(--danger);
-  --color-warning: var(--warning);
-  --color-card-bg: var(--card-bg);
-  --color-border: var(--border);
-  --color-text-muted: var(--text-muted);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: var(--color-bg-secondary);
+  --color-secondary-foreground: var(--color-text);
+
+  --color-muted: var(--color-bg-secondary);
+  --color-muted-foreground: var(--color-text-secondary);
+
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: var(--color-accent-muted);
+
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.25rem;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0px 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --primary: #818cf8;
-    --primary-hover: #6366f1;
-    --secondary: #1e293b;
-    --card-bg: #1e293b;
-    --border: #334155;
-    --text-muted: #94a3b8;
-  }
+:root {
+  /* SeatCraft Official Color Theme */
+  --color-bg: #FAFAFA;
+  --color-bg-secondary: #F3F3F3;
+  --color-text: #111111;
+  --color-text-secondary: #555555;
+
+  --color-accent: #4FA3F7;
+  --color-accent-muted: #D8EBFF;
+
+  --color-accent-secondary: #7AD3B6;
+  --color-accent-secondary-muted: #E3F7F1;
+
+  --color-seat-default: #FFFFFF;
+  --color-seat-border: #E0E0E0;
+  --color-seat-male: #E8F3FF;
+  --color-seat-female: #FDECF5;
+  --color-seat-selected: #DCEFFF;
+
+  /* Shadows */
+  --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0px 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+.dark {
+  /* Dark mode mappings (if needed, though user specified precise colors, usually better to adapt lightly or stick to light mode if strict) */
+  /* For now, mapping logical inverses or keeping as is if user wants strict adherence. 
+     Given "Apple/Vercel" vibe, they usually have dark mode. I'll provide a high quality dark mapping. */
+  --color-bg: #111111;
+  --color-bg-secondary: #1a1a1a;
+  --color-text: #fafafa;
+  --color-text-secondary: #a1a1aa;
+
+  --color-accent: #3b82f6;
+  --color-accent-muted: #1e3a8a;
+
+  --color-accent-secondary: #10b981;
+  --color-accent-secondary-muted: #064e3b;
+
+  --color-seat-default: #1a1a1a;
+  --color-seat-border: #333333;
+  --color-seat-male: #1e3a8a;
+  --color-seat-female: #831843;
+  --color-seat-selected: #172554;
+
+  --color-border: #333333;
+  --color-input: #333333;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--secondary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Focus styles */
-*:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-/* Button base styles */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.btn-secondary {
-  background: var(--secondary);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-  background: var(--border);
-}
-
-.btn-danger {
-  background: var(--danger);
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #dc2626;
-}
-
-/* Card styles */
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* Input styles */
-.input {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-/* Badge styles */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.625rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-  background: var(--secondary);
-  color: var(--text-muted);
-}
-
-.badge-primary {
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--primary);
-}
-
-.badge-accent {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--accent);
-}
-
-/* Animations */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+@layer base {
+  * {
+    @apply border-border;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.4s ease-out;
-}
-
-/* Canvas drag styles */
-.dragging {
-  cursor: grabbing !important;
-}
-
-.drag-handle {
-  cursor: grab;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-/* Responsive utilities */
-@media (max-width: 640px) {
-  .btn {
-    padding: 0.5rem 0.875rem;
-    font-size: 0.75rem;
-  }
-
-  .card {
-    padding: 1rem;
-  }
-
-  .input {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-  }
-}
-
-/* Touch-friendly tap targets */
-@media (pointer: coarse) {
-  .btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-
-/* Disable text selection on canvas */
-.touch-none {
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Safe area insets for mobile */
-@supports (padding-top: env(safe-area-inset-top)) {
   body {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .touch-none {
+    touch-action: none;
+  }
+
+  /* GPU Acceleration Utility */
+  .gpu-accelerated {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
 }

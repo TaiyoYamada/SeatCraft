@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TemplateSelector } from "@/features/layouts/components/TemplateSelector";
@@ -8,6 +8,10 @@ import type { SeatTemplateType } from "@/features/layouts/types";
 import { useCanvasStore } from "@/features/canvas/hooks/use-canvas";
 import { useMembersStore } from "@/features/members/hooks/use-members";
 import { generateSeatsFromTemplate, MAX_MEMBERS } from "@/features/layouts/utils/template-generators";
+import { Button } from "@/shared/components/ui/Button";
+import { Card } from "@/shared/components/ui/Card";
+import { ChevronRight, Users, Eye, ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function TemplatesPage() {
     const router = useRouter();
@@ -18,10 +22,17 @@ export default function TemplatesPage() {
     const members = useMembersStore((state) => state.members);
     const { setSeats, setTemplateType, canvasWidth, canvasHeight } = useCanvasStore();
 
+    // Auto-update seat count if members exist and no manual override
+    useEffect(() => {
+        if (members.length > 0 && selectedTemplate !== "custom") {
+            // Optional: auto-set seat count to member count rounded up to even?
+            // setSeatCount(Math.max(members.length, 8));
+        }
+    }, [members.length, selectedTemplate]);
+
     const handleContinue = () => {
         if (!selectedTemplate) return;
 
-        // テンプレートから座席を生成
         const seats = generateSeatsFromTemplate(
             selectedTemplate,
             selectedTemplate === "custom" ? 0 : seatCount,
@@ -40,129 +51,158 @@ export default function TemplatesPage() {
     };
 
     return (
-        <div className="min-h-screen py-4 sm:py-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen py-8 bg-secondary/30">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6">
+
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold">テンプレート選択</h1>
-                        <p className="text-[var(--text-muted)] mt-1 text-sm sm:text-base">
-                            席のレイアウトを選んでください
+                        <h1 className="text-3xl font-bold tracking-tight mb-2">テンプレート選択</h1>
+                        <p className="text-muted-foreground">
+                            ミーティングや飲み会のスタイルに合わせて配置を選んでください
                         </p>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <Link href="/members" className="btn btn-secondary text-sm sm:text-base">
-                            ← メンバー編集
-                        </Link>
-                    </div>
-                </div>
-
-                {/* Member count info */}
-                {members.length > 0 && (
-                    <div className="mb-6 sm:mb-8 p-3 sm:p-4 bg-[var(--secondary)] rounded-lg">
-                        <p className="text-sm">
-                            登録メンバー: <strong>{members.length}</strong> 人
-                            {members.length > MAX_MEMBERS && (
-                                <span className="text-[var(--warning)] ml-2">
-                                    (最大 {MAX_MEMBERS} 人まで)
-                                </span>
-                            )}
-                        </p>
-                    </div>
-                )}
-
-                {/* Template selection */}
-                <div className="mb-6 sm:mb-8">
-                    <TemplateSelector
-                        selected={selectedTemplate}
-                        onSelect={setSelectedTemplate}
-                    />
-                </div>
-
-                {/* Seat count input */}
-                {selectedTemplate && selectedTemplate !== "custom" && (
-                    <div className="card mb-6 sm:mb-8 max-w-md animate-fade-in">
-                        <label htmlFor="seatCount" className="block text-sm font-medium mb-2">
-                            座席数 (最大 {MAX_MEMBERS} 人)
-                        </label>
-                        <div className="flex items-center gap-4">
-                            <input
-                                type="range"
-                                id="seatCount"
-                                min={2}
-                                max={MAX_MEMBERS}
-                                value={seatCount}
-                                onChange={(e) => handleSeatCountChange(Number(e.target.value))}
-                                className="flex-1"
-                            />
-                            <input
-                                type="number"
-                                value={seatCount}
-                                onChange={(e) => handleSeatCountChange(Number(e.target.value))}
-                                min={2}
-                                max={MAX_MEMBERS}
-                                className="input w-20 text-center"
-                            />
+                    <div className="flex items-center gap-3">
+                        <div className="text-sm text-right hidden sm:block">
+                            <div className="font-medium">{members.length}名</div>
+                            <div className="text-muted-foreground text-xs">登録済み</div>
                         </div>
-                        {members.length > seatCount && (
-                            <p className="text-sm text-[var(--warning)] mt-2">
-                                ⚠ メンバー数({members.length})が座席数より多いです
-                            </p>
+                        <Button variant="outline" asChild>
+                            <Link href="/members">
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                メンバー編集
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column: Selection */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <section>
+                            <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+                                レイアウトタイプ
+                            </h2>
+                            <TemplateSelector
+                                selected={selectedTemplate}
+                                onSelect={setSelectedTemplate}
+                            />
+                        </section>
+
+                        {/* Configuration Controls */}
+                        {selectedTemplate && selectedTemplate !== "custom" && (
+                            <section className="animate-in fade-in slide-in-from-top-4 duration-300">
+                                <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+                                    詳細設定
+                                </h2>
+                                <Card className="p-6">
+                                    <div className="space-y-6">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <label htmlFor="seatCount" className="text-sm font-medium">
+                                                    座席数
+                                                </label>
+                                                <span className="text-sm font-mono bg-secondary px-2 py-1 rounded">
+                                                    {seatCount}席
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                id="seatCount"
+                                                min={2}
+                                                max={MAX_MEMBERS}
+                                                value={seatCount}
+                                                onChange={(e) => handleSeatCountChange(Number(e.target.value))}
+                                                className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+                                            {members.length > seatCount && (
+                                                <p className="text-xs text-destructive flex items-center gap-1">
+                                                    <Users className="w-3 h-3" />
+                                                    メンバー数({members.length})が座席数より多いです
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {selectedTemplate === "island" && (
+                                            <div className="grid grid-cols-2 gap-4 border-t border-border pt-6">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs text-muted-foreground block text-center">
+                                                        縦の席数
+                                                    </label>
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <Button
+                                                            variant="outline" size="sm"
+                                                            onClick={() => setIslandRows(Math.max(1, islandRows - 1))}
+                                                        >-</Button>
+                                                        <span className="w-8 text-center font-medium">{islandRows}</span>
+                                                        <Button
+                                                            variant="outline" size="sm"
+                                                            onClick={() => setIslandRows(Math.min(5, islandRows + 1))}
+                                                        >+</Button>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs text-muted-foreground block text-center">
+                                                        横の席数
+                                                    </label>
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <Button
+                                                            variant="outline" size="sm"
+                                                            onClick={() => setIslandCols(Math.max(1, islandCols - 1))}
+                                                        >-</Button>
+                                                        <span className="w-8 text-center font-medium">{islandCols}</span>
+                                                        <Button
+                                                            variant="outline" size="sm"
+                                                            onClick={() => setIslandCols(Math.min(5, islandCols + 1))}
+                                                        >+</Button>
+                                                    </div>
+                                                </div>
+                                                <p className="col-span-2 text-center text-xs text-muted-foreground">
+                                                    1島あたり {islandRows * islandCols} 席 × 島の数を自動調整
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Card>
+                            </section>
                         )}
                     </div>
-                )}
 
-                {/* Island customization */}
-                {selectedTemplate === "island" && (
-                    <div className="card mb-6 sm:mb-8 max-w-md animate-fade-in">
-                        <h3 className="text-sm font-medium mb-4">島のサイズ設定</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="islandRows" className="block text-xs text-[var(--text-muted)] mb-1">
-                                    行数 (縦)
-                                </label>
-                                <input
-                                    type="number"
-                                    id="islandRows"
-                                    value={islandRows}
-                                    onChange={(e) => setIslandRows(Math.min(Math.max(1, Number(e.target.value)), 5))}
-                                    min={1}
-                                    max={5}
-                                    className="input w-full text-center"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="islandCols" className="block text-xs text-[var(--text-muted)] mb-1">
-                                    列数 (横)
-                                </label>
-                                <input
-                                    type="number"
-                                    id="islandCols"
-                                    value={islandCols}
-                                    onChange={(e) => setIslandCols(Math.min(Math.max(1, Number(e.target.value)), 5))}
-                                    min={1}
-                                    max={5}
-                                    className="input w-full text-center"
-                                />
-                            </div>
+                    {/* Right Column: Preview & Action */}
+                    <div className="space-y-6">
+                        <div className="sticky top-24 space-y-4">
+                            {selectedTemplate ? (
+                                <Card className="p-6 border-primary/20 bg-primary/5">
+                                    <div className="text-center space-y-4">
+                                        <div className="w-16 h-16 mx-auto bg-background rounded-full flex items-center justify-center shadow-sm">
+                                            <Eye className="w-8 h-8 text-primary" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-lg">設定完了</h3>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                {selectedTemplate === "custom"
+                                                    ? "自由に配置を作成します"
+                                                    : `${seatCount}席のレイアウトを作成します`}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={handleContinue}
+                                            size="lg"
+                                            className="w-full shadow-lg hover:shadow-xl transition-all"
+                                        >
+                                            作成する <ChevronRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ) : (
+                                <div className="h-full min-h-[200px] flex items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                                    <p className="text-sm">レイアウトを選択してください</p>
+                                </div>
+                            )}
                         </div>
-                        <p className="text-xs text-[var(--text-muted)] mt-2">
-                            1島あたり {islandRows * islandCols} 席
-                        </p>
                     </div>
-                )}
-
-                {/* Continue button */}
-                {selectedTemplate && (
-                    <div className="flex justify-end animate-fade-in">
-                        <button
-                            onClick={handleContinue}
-                            className="btn btn-primary text-base sm:text-lg px-6 sm:px-8"
-                        >
-                            キャンバスへ進む →
-                        </button>
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     );

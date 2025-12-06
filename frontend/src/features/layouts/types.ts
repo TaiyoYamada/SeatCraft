@@ -19,6 +19,7 @@ export interface Seat {
     position: Position;
     size: Size;
     label?: string;
+    isLocked?: boolean;
 }
 
 export interface SeatTemplate {

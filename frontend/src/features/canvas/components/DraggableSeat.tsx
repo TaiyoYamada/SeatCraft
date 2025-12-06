@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Seat } from "@/features/layouts/types";
 import type { Member } from "@/features/members/types";
-import { getGenderColor } from "@/features/members/types";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { X, Lock, Unlock } from "lucide-react";
 
 interface DraggableSeatProps {
     seat: Seat;
@@ -12,6 +14,8 @@ interface DraggableSeatProps {
     onDrag: (seatId: string, x: number, y: number) => void;
     onDrop: () => void;
     onUnassign: () => void;
+    onToggleLock: () => void;
+    zoom: number;
 }
 
 export function DraggableSeat({
@@ -21,40 +25,47 @@ export function DraggableSeat({
     onDrag,
     onDrop,
     onUnassign,
+    onToggleLock,
+    zoom,
 }: DraggableSeatProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const seatRef = useRef<HTMLDivElement>(null);
+    const [showMenu, setShowMenu] = useState(false);
 
+    // Calculate precise initial offset for smooth dragging start
     const handleMouseDown = useCallback(
         (e: React.MouseEvent) => {
+            // Don't start drag if seat is locked
+            if (seat.isLocked) return;
+
             e.stopPropagation();
             setIsDragging(true);
             setDragOffset({
-                x: e.clientX - seat.position.x,
-                y: e.clientY - seat.position.y,
+                x: e.clientX / zoom - seat.position.x,
+                y: e.clientY / zoom - seat.position.y,
             });
         },
-        [seat.position]
+        [seat.position, seat.isLocked, zoom]
     );
 
     const handleMouseMove = useCallback(
         (e: React.MouseEvent) => {
-            if (isDragging) {
+            if (isDragging && !seat.isLocked) {
+                e.preventDefault();
                 e.stopPropagation();
-                const newX = e.clientX - dragOffset.x;
-                const newY = e.clientY - dragOffset.y;
+                // Adjust delta by zoom factor
+                const newX = e.clientX / zoom - dragOffset.x;
+                const newY = e.clientY / zoom - dragOffset.y;
                 onDrag(seat.id, newX, newY);
             }
         },
-        [isDragging, dragOffset, onDrag, seat.id]
+        [isDragging, dragOffset, onDrag, seat.id, seat.isLocked, zoom]
     );
 
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
     }, []);
 
-    // ドロップターゲットとして
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
@@ -68,51 +79,133 @@ export function DraggableSeat({
         [onDrop]
     );
 
+    const handleContextMenu = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        setShowMenu(!showMenu);
+    }, [showMenu]);
+
+    // Dynamic style for gender colors strictly following the official theme
+    const getGenderStyle = (gender: Member["gender"]) => {
+        switch (gender) {
+            case "male": return "bg-[var(--color-seat-male)] text-[#1e3a8a]";
+            case "female": return "bg-[var(--color-seat-female)] text-[#831843]";
+            default: return "bg-[var(--color-seat-default)] text-foreground";
+        }
+    };
+
     return (
-        <div
-            ref={seatRef}
-            className={`absolute rounded-xl transition-shadow cursor-move select-none ${isDragging ? "shadow-2xl z-50" : "shadow-md hover:shadow-lg"
-                } ${isDragOver ? "ring-2 ring-[var(--primary)]" : ""}`}
+        <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+                opacity: 1,
+                scale: isDragging ? 1.03 : 1, // Slight lift
+                boxShadow: isDragging ? "var(--shadow-md)" : "var(--shadow-sm)",
+                zIndex: isDragging ? 50 : 1,
+            }}
+            exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+            transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 30
+            }}
+            className={cn(
+                "absolute rounded-lg select-none",
+                seat.isLocked ? "cursor-default" : "cursor-move",
+                assignedMember ? "border" : "border border-dashed bg-background/50 hover:bg-secondary/30",
+                isDragOver && "ring-2 ring-primary ring-offset-2",
+                seat.isLocked && "border-2 border-[var(--color-accent)]/50"
+            )}
             style={{
                 left: seat.position.x,
                 top: seat.position.y,
                 width: seat.size.width,
                 height: seat.size.height,
-                backgroundColor: assignedMember ? "var(--primary)" : "var(--card-bg)",
-                border: assignedMember ? "none" : "2px dashed var(--border)",
+                borderColor: seat.isLocked ? 'var(--color-accent)' : 'var(--color-seat-border)',
             }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            onMouseLeave={() => { handleMouseUp(); setShowMenu(false); }}
             onDragOver={handleDragOver}
             onDrop={handleDropEvent}
+            onContextMenu={handleContextMenu}
+            onClick={() => !isDragging && setShowMenu(!showMenu)}
         >
-            <div className="w-full h-full flex flex-col items-center justify-center p-2">
+            <div className={cn(
+                "w-full h-full flex flex-col items-center justify-center p-1 rounded-lg overflow-hidden relative transition-colors duration-200 border border-[var(--color-seat-border)]",
+                assignedMember && getGenderStyle(assignedMember.gender)
+            )}>
+                {/* Lock indicator */}
+                {seat.isLocked && (
+                    <div className="absolute top-1 left-1 text-[var(--color-accent)]">
+                        <Lock className="w-3 h-3" />
+                    </div>
+                )}
+
                 {assignedMember ? (
                     <>
-                        <span className="text-white font-bold text-center text-sm truncate w-full">
+                        <span className="font-bold text-center text-sm truncate w-full px-1 leading-tight tracking-tight">
                             {assignedMember.nickname || assignedMember.name}
                         </span>
-                        <span className={`badge ${getGenderColor(assignedMember.gender)} text-xs mt-1`}>
+
+                        <div className="mt-0.5 text-[10px] opacity-60 font-mono">
                             {seat.label}
-                        </span>
+                        </div>
+
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onUnassign();
                             }}
-                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white text-xs"
+                            className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-black/40 transition-colors"
                         >
-                            ×
+                            <X className="w-2.5 h-2.5" />
                         </button>
                     </>
                 ) : (
-                    <span className="text-[var(--text-muted)] text-sm font-medium">
-                        {seat.label || "空席"}
+                    <span className="text-muted-foreground/40 text-xs font-medium font-mono">
+                        {seat.label}
                     </span>
                 )}
             </div>
-        </div>
+
+            {/* Context Menu */}
+            <AnimatePresence>
+                {showMenu && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="absolute -top-10 left-1/2 -translate-x-1/2 bg-background border border-border rounded-lg shadow-lg p-1 z-50 flex gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleLock();
+                                setShowMenu(false);
+                            }}
+                            className={cn(
+                                "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors",
+                                seat.isLocked
+                                    ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20"
+                                    : "bg-secondary text-secondary-foreground hover:bg-primary/10"
+                            )}
+                        >
+                            {seat.isLocked ? (
+                                <>
+                                    <Unlock className="w-3 h-3" /> 解除
+                                </>
+                            ) : (
+                                <>
+                                    <Lock className="w-3 h-3" /> 固定
+                                </>
+                            )}
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 }

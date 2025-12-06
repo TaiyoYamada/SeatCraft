@@ -6,12 +6,14 @@ import { useCanvasStore } from "../hooks/use-canvas";
 import { DraggableSeat } from "./DraggableSeat";
 import { MemberPanel } from "./MemberPanel";
 import { snapToGrid } from "@/features/layouts/utils/template-generators";
+import { useGesture } from "@use-gesture/react";
+import { Button } from "@/shared/components/ui/Button";
+import { ZoomIn, ZoomOut, Plus, Minus } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 
 export function Canvas() {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
-    const [isPanning, setIsPanning] = useState(false);
-    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
     const [draggedMemberId, setDraggedMemberId] = useState<string | null>(null);
     const [showMemberPanel, setShowMemberPanel] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
@@ -23,19 +25,24 @@ export function Canvas() {
         viewport,
         seats,
         assignments,
+        templateType,
         setViewport,
         updateSeat,
         assignMemberToSeat,
         unassignSeat,
+        toggleSeatLock,
+        addNewSeat,
+        removeLastSeat,
     } = useCanvasStore();
 
     const members = useMembersStore((state) => state.members);
 
-    // レスポンシブ検出
+    // Responsive detection
     useEffect(() => {
         const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-            if (window.innerWidth < 768) {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (mobile) {
                 setShowMemberPanel(false);
             }
         };
@@ -44,74 +51,46 @@ export function Canvas() {
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
-    // マウスホイールでズーム
-    const handleWheel = useCallback(
-        (e: React.WheelEvent) => {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            const newZoom = Math.max(0.25, Math.min(2, viewport.zoom + delta));
-            setViewport({ zoom: newZoom });
+    // Gesture handling (Zoom & Pan)
+    useGesture(
+        {
+            onDrag: ({ offset: [x, y] }) => {
+                setViewport({ x, y });
+            },
+            onWheel: ({ delta: [, dy], metaKey, ctrlKey }) => {
+                // If ctrl/meta is pressed, treat as zoom (standard trackpad behavior)
+                if (metaKey || ctrlKey) {
+                    const newZoom = Math.max(0.25, Math.min(2, viewport.zoom - dy * 0.01));
+                    setViewport({ zoom: newZoom });
+                } else {
+                    // Otherwise pan
+                    setViewport({ x: viewport.x - dy, y: viewport.y });
+                }
+            },
+            onPinch: ({ offset: [z] }) => {
+                setViewport({ zoom: z });
+            },
         },
-        [viewport.zoom, setViewport]
-    );
-
-    // パン開始
-    const handleMouseDown = useCallback(
-        (e: React.MouseEvent) => {
-            if (e.button === 0 && e.target === canvasRef.current) {
-                setIsPanning(true);
-                setPanStart({ x: e.clientX - viewport.x, y: e.clientY - viewport.y });
+        {
+            target: containerRef,
+            drag: {
+                from: () => [viewport.x, viewport.y],
+                filterTaps: true,
+                pointer: { keys: false }, // Allow touch drag
+                rubberband: true,
+            },
+            pinch: {
+                scaleBounds: { min: 0.25, max: 2 },
+                modifierKey: null,
+            },
+            wheel: {
+                // Prevent default scrolling behavior for smoother canvas control
+                eventOptions: { passive: false }
             }
-        },
-        [viewport.x, viewport.y]
+        }
     );
 
-    // タッチ開始
-    const handleTouchStart = useCallback(
-        (e: React.TouchEvent) => {
-            if (e.touches.length === 1) {
-                setIsPanning(true);
-                setPanStart({
-                    x: e.touches[0].clientX - viewport.x,
-                    y: e.touches[0].clientY - viewport.y,
-                });
-            }
-        },
-        [viewport.x, viewport.y]
-    );
-
-    // パン中
-    const handleMouseMove = useCallback(
-        (e: React.MouseEvent) => {
-            if (isPanning) {
-                setViewport({
-                    x: e.clientX - panStart.x,
-                    y: e.clientY - panStart.y,
-                });
-            }
-        },
-        [isPanning, panStart, setViewport]
-    );
-
-    // タッチ移動
-    const handleTouchMove = useCallback(
-        (e: React.TouchEvent) => {
-            if (isPanning && e.touches.length === 1) {
-                setViewport({
-                    x: e.touches[0].clientX - panStart.x,
-                    y: e.touches[0].clientY - panStart.y,
-                });
-            }
-        },
-        [isPanning, panStart, setViewport]
-    );
-
-    // パン終了
-    const handlePanEnd = useCallback(() => {
-        setIsPanning(false);
-    }, []);
-
-    // 座席のドラッグ
+    // Handlers
     const handleSeatDrag = useCallback(
         (seatId: string, x: number, y: number) => {
             const snappedX = snapToGrid(x, gridSize);
@@ -121,7 +100,6 @@ export function Canvas() {
         [gridSize, updateSeat]
     );
 
-    // メンバーを座席にドロップ
     const handleMemberDrop = useCallback(
         (seatId: string) => {
             if (draggedMemberId) {
@@ -132,7 +110,6 @@ export function Canvas() {
         [draggedMemberId, assignMemberToSeat]
     );
 
-    // 割り当てられたメンバーを取得
     const getAssignedMember = useCallback(
         (seatId: string) => {
             const assignment = assignments.find((a) => a.seatId === seatId);
@@ -142,117 +119,149 @@ export function Canvas() {
         [assignments, members]
     );
 
-    // 未割り当てのメンバー
     const unassignedMembers = members.filter(
         (m) => !assignments.some((a) => a.memberId === m.id)
     );
 
+    const isCustomMode = templateType === "custom";
+
     return (
-        <div className="flex h-full relative">
-            {/* Member Panel Toggle (Mobile) */}
+        <div className="flex h-full relative overflow-hidden bg-background">
+            {/* Toggle Member Panel (Mobile) */}
             {isMobile && (
-                <button
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute top-4 left-4 z-20 shadow-md"
                     onClick={() => setShowMemberPanel(!showMemberPanel)}
-                    className="absolute top-2 left-2 z-20 btn btn-secondary text-xs px-2 py-1"
                 >
-                    {showMemberPanel ? "✕" : `👤 ${unassignedMembers.length}`}
-                </button>
+                    {showMemberPanel ? "閉じる" : `未配置 (${unassignedMembers.length})`}
+                </Button>
             )}
 
             {/* Member Panel */}
-            <div
-                className={`${isMobile
-                        ? `absolute inset-y-0 left-0 z-10 transition-transform duration-300 ${showMemberPanel ? "translate-x-0" : "-translate-x-full"
-                        }`
-                        : ""
-                    }`}
-            >
-                <MemberPanel
-                    members={unassignedMembers}
-                    onDragStart={setDraggedMemberId}
-                    onDragEnd={() => setDraggedMemberId(null)}
-                />
-            </div>
+            <MemberPanel
+                members={unassignedMembers}
+                onDragStart={setDraggedMemberId}
+                onDragEnd={() => setDraggedMemberId(null)}
+                isOpen={showMemberPanel}
+                isMobile={isMobile}
+                onClose={() => setShowMemberPanel(false)}
+            />
 
-            {/* Canvas */}
+            {/* Canvas Area */}
             <div
                 ref={containerRef}
-                className="flex-1 overflow-hidden bg-[var(--secondary)] relative touch-none"
-                onWheel={handleWheel}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handlePanEnd}
-                onMouseLeave={handlePanEnd}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handlePanEnd}
+                className="flex-1 relative touch-none overflow-hidden cursor-move"
+                style={{
+                    backgroundColor: 'var(--color-bg-secondary)',
+                    backgroundImage: `radial-gradient(var(--color-seat-border) 1px, transparent 1px)`,
+                    backgroundSize: `${20 * viewport.zoom}px ${20 * viewport.zoom}px`,
+                    backgroundPosition: `${viewport.x}px ${viewport.y}px`,
+                }}
             >
-                {/* Zoom indicator */}
-                <div className="absolute top-2 right-2 z-10 bg-[var(--card-bg)] px-2 py-1 rounded-lg shadow text-xs sm:text-sm">
-                    {Math.round(viewport.zoom * 100)}%
-                </div>
-
-                {/* Zoom controls (Mobile) */}
-                {isMobile && (
-                    <div className="absolute bottom-4 right-2 z-10 flex flex-col gap-1">
-                        <button
-                            onClick={() => setViewport({ zoom: Math.min(2, viewport.zoom + 0.1) })}
-                            className="btn btn-secondary text-lg w-8 h-8 p-0"
+                {/* Top Controls: Add/Remove Seats (for Custom mode) */}
+                {isCustomMode && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-background/90 backdrop-blur rounded-lg shadow-md border border-border p-2">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={removeLastSeat}
+                            disabled={seats.length <= 1}
                         >
-                            +
-                        </button>
-                        <button
-                            onClick={() => setViewport({ zoom: Math.max(0.25, viewport.zoom - 0.1) })}
-                            className="btn btn-secondary text-lg w-8 h-8 p-0"
+                            <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm font-mono w-10 text-center">{seats.length}</span>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={addNewSeat}
+                            disabled={seats.length >= 50}
                         >
-                            −
-                        </button>
+                            <Plus className="h-4 w-4" />
+                        </Button>
                     </div>
                 )}
 
-                {/* Canvas area */}
+                {/* Zoom Controls */}
+                <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
+                    <div className="bg-background/90 backdrop-blur rounded-lg shadow-sm border border-border p-1 flex flex-col gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setViewport({ zoom: Math.min(2, viewport.zoom + 0.1) })}
+                        >
+                            <ZoomIn className="h-4 w-4" />
+                        </Button>
+                        <div className="h-px bg-border w-full" />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setViewport({ zoom: Math.max(0.25, viewport.zoom - 0.1) })}
+                        >
+                            <ZoomOut className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="bg-background/90 backdrop-blur rounded-lg shadow-sm border border-border px-2 py-1 text-xs font-mono text-center">
+                        {Math.round(viewport.zoom * 100)}%
+                    </div>
+                </div>
+
+                {/* Content Layer */}
                 <div
                     ref={canvasRef}
-                    className="absolute cursor-grab active:cursor-grabbing"
+                    className="absolute origin-top-left"
                     style={{
                         width: canvasWidth,
                         height: canvasHeight,
-                        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-                        transformOrigin: "0 0",
-                        background: `
-                            linear-gradient(to right, var(--border) 1px, transparent 1px),
-                            linear-gradient(to bottom, var(--border) 1px, transparent 1px)
-                        `,
-                        backgroundSize: `${gridSize}px ${gridSize}px`,
-                        backgroundColor: "var(--card-bg)",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 24px rgba(0,0,0,0.1)",
+                        transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
+                        boxShadow: `0 0 0 1px var(--color-border)`,
+                        background: 'var(--color-bg)',
+                        borderRadius: '24px'
                     }}
                 >
-                    {/* Seats */}
-                    {seats.map((seat) => (
-                        <DraggableSeat
-                            key={seat.id}
-                            seat={seat}
-                            assignedMember={getAssignedMember(seat.id)}
-                            isDragOver={false}
-                            onDrag={handleSeatDrag}
-                            onDrop={() => handleMemberDrop(seat.id)}
-                            onUnassign={() => unassignSeat(seat.id)}
-                        />
-                    ))}
+                    <AnimatePresence>
+                        {seats.map((seat) => (
+                            <DraggableSeat
+                                key={seat.id}
+                                seat={seat}
+                                assignedMember={getAssignedMember(seat.id)}
+                                isDragOver={false}
+                                onDrag={handleSeatDrag}
+                                onDrop={() => handleMemberDrop(seat.id)}
+                                onUnassign={() => unassignSeat(seat.id)}
+                                onToggleLock={() => toggleSeatLock(seat.id)}
+                                zoom={viewport.zoom}
+                            />
+                        ))}
+                    </AnimatePresence>
                 </div>
 
-                {/* Instructions */}
+                {/* Empty State */}
                 {seats.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="text-center text-[var(--text-muted)] px-4">
-                            <p className="text-base sm:text-lg">座席がありません</p>
-                            <p className="text-xs sm:text-sm mt-1">テンプレートを選択してください</p>
+                        <div className="text-center text-muted-foreground bg-background/50 px-6 py-4 rounded-xl backdrop-blur-sm">
+                            <p className="text-lg font-medium text-foreground">座席がありません</p>
+                            <p className="text-sm mt-1">
+                                {isCustomMode ? (
+                                    <>上部の「+」ボタンで席を追加してください</>
+                                ) : (
+                                    <>テンプレートから配置を選択するか、<br />座席を追加してください</>
+                                )}
+                            </p>
                         </div>
                     </div>
                 )}
             </div>
         </div>
     );
+}
+
+// Disable default pinch zoom behavior on the document to allow canvas zoom
+if (typeof document !== 'undefined') {
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
 }

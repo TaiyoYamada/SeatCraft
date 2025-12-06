@@ -7,6 +7,8 @@ import { Canvas } from "@/features/canvas/components/Canvas";
 import { useCanvasStore } from "@/features/canvas/hooks/use-canvas";
 import { useMembersStore } from "@/features/members/hooks/use-members";
 import { v4 as uuidv4 } from "uuid";
+import { Button } from "@/shared/components/ui/Button";
+import { Shuffle, Save, ArrowLeft, Settings, RotateCcw } from "lucide-react";
 
 type GenderMode = "random" | "alternate" | "femaleFirst" | "maleFront" | "femaleLast" | "maleLast";
 
@@ -26,7 +28,7 @@ export default function CraftPage() {
     const [genderMode, setGenderMode] = useState<GenderMode>("random");
     const [showOptions, setShowOptions] = useState(false);
 
-    const { seats, assignments, constraints, setAssignments, resetViewport } = useCanvasStore();
+    const { seats, assignments, constraints, setAssignments, resetViewport, shuffleAssignments } = useCanvasStore();
     const members = useMembersStore((state) => state.members);
 
     const getSettings = () => ({
@@ -37,8 +39,8 @@ export default function CraftPage() {
         gridSize: useCanvasStore.getState().gridSize,
     });
 
-    // シャッフルして保存
-    const handleShuffle = async () => {
+    // シャッフル（Canvas内のみ、遷移しない）
+    const handleShuffle = () => {
         if (members.length === 0) {
             setError("メンバーを登録してください");
             return;
@@ -48,63 +50,15 @@ export default function CraftPage() {
             return;
         }
 
-        setIsProcessing(true);
         setError(null);
 
-        try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-
-            if (apiUrl) {
-                const response = await fetch(`${apiUrl}/shuffle`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        members,
-                        settings: getSettings(),
-                        constraints: constraints.filter((c) => c.enabled),
-                        genderMode,
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error("シャッフルに失敗しました");
-                }
-
-                const data = await response.json();
-                setAssignments(data.assignments);
-                router.push(`/result/${data.id}`);
-            } else {
-                // ローカルモック
-                const shuffledMembers = [...members].sort(() => Math.random() - 0.5);
-                const newAssignments = seats.slice(0, shuffledMembers.length).map((seat, i) => ({
-                    seatId: seat.id,
-                    memberId: shuffledMembers[i].id,
-                }));
-                setAssignments(newAssignments);
-
-                const resultId = uuidv4();
-                localStorage.setItem(
-                    `seatcraft-result-${resultId}`,
-                    JSON.stringify({
-                        id: resultId,
-                        members,
-                        settings: getSettings(),
-                        assignments: newAssignments,
-                        constraints,
-                        createdAt: new Date().toISOString(),
-                    })
-                );
-                router.push(`/result/${resultId}`);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "エラーが発生しました");
-        } finally {
-            setIsProcessing(false);
-        }
+        // Use the store's shuffleAssignments which respects locked seats
+        const memberIds = members.map(m => m.id);
+        shuffleAssignments(memberIds);
     };
 
-    // シャッフルせずに現在の配置で保存
-    const handleConfirm = async () => {
+    // 結果画面へ遷移（保存して遷移）
+    const handleViewResults = async () => {
         if (assignments.length === 0) {
             setError("座席に人を配置してください");
             return;
@@ -160,45 +114,52 @@ export default function CraftPage() {
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">
             {/* Toolbar */}
-            <div className="bg-[var(--card-bg)] border-b border-[var(--border)] p-2 sm:p-4">
+            <div className="bg-background border-b border-border p-2 sm:p-4 shadow-sm">
                 <div className="max-w-7xl mx-auto">
                     {/* Top row */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2 sm:gap-4">
-                            <Link href="/layouts/templates" className="btn btn-secondary text-xs sm:text-sm px-2 sm:px-4">
-                                ← 戻る
-                            </Link>
-                            <span className="text-xs sm:text-sm text-[var(--text-muted)] hidden sm:inline">
+                            <Button variant="ghost" size="sm" asChild>
+                                <Link href="/layouts/templates">
+                                    <ArrowLeft className="w-4 h-4 mr-1" />
+                                    戻る
+                                </Link>
+                            </Button>
+                            <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
                                 座席: {seats.length} | 配置済み: {assignments.length} / {members.length}
                             </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => setShowOptions(!showOptions)}
-                                className="btn btn-secondary text-xs sm:text-sm px-2 sm:px-4"
                             >
-                                ⚙ 設定
-                            </button>
-                            <button
+                                <Settings className="w-4 h-4 mr-1" />
+                                設定
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={resetViewport}
-                                className="btn btn-secondary text-xs sm:text-sm px-2 sm:px-4"
                             >
+                                <RotateCcw className="w-4 h-4 mr-1" />
                                 リセット
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
                     {/* Options panel */}
                     {showOptions && (
-                        <div className="mt-3 p-3 bg-[var(--secondary)] rounded-lg animate-fade-in">
+                        <div className="mt-3 p-3 bg-secondary/50 rounded-lg animate-in fade-in slide-in-from-top-2">
                             <label className="block text-xs sm:text-sm font-medium mb-2">
                                 男女配置ルール
                             </label>
                             <select
                                 value={genderMode}
                                 onChange={(e) => setGenderMode(e.target.value as GenderMode)}
-                                className="input text-sm w-full sm:w-auto"
+                                className="flex h-9 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                                 {GENDER_MODES.map((mode) => (
                                     <option key={mode.value} value={mode.value}>
@@ -210,40 +171,47 @@ export default function CraftPage() {
                     )}
 
                     {/* Mobile stats */}
-                    <div className="mt-2 text-xs text-[var(--text-muted)] sm:hidden">
+                    <div className="mt-2 text-xs text-muted-foreground sm:hidden">
                         座席: {seats.length} | 配置済み: {assignments.length} / {members.length}
                     </div>
 
                     {/* Action buttons */}
                     <div className="mt-3 flex flex-wrap gap-2 justify-end">
-                        <button
-                            onClick={handleConfirm}
-                            disabled={isProcessing || assignments.length === 0}
-                            className="btn btn-secondary text-xs sm:text-sm flex-1 sm:flex-none"
-                        >
-                            ✓ この配置で決定
-                        </button>
-                        <button
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={handleShuffle}
-                            disabled={isProcessing || members.length === 0}
-                            className="btn btn-primary text-xs sm:text-sm flex-1 sm:flex-none"
+                            disabled={members.length === 0 || seats.length === 0}
+                            className="flex-1 sm:flex-none"
+                        >
+                            <Shuffle className="w-4 h-4 mr-1" />
+                            シャッフル
+                        </Button>
+                        <Button
+                            onClick={handleViewResults}
+                            disabled={isProcessing || assignments.length === 0}
+                            size="sm"
+                            className="flex-1 sm:flex-none"
                         >
                             {isProcessing ? (
                                 <>
-                                    <svg className="animate-spin -ml-1 mr-1 h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24">
+                                    <svg className="animate-spin -ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                     </svg>
                                     処理中...
                                 </>
                             ) : (
-                                "🔀 シャッフル"
+                                <>
+                                    <Save className="w-4 h-4 mr-1" />
+                                    結果を見る
+                                </>
                             )}
-                        </button>
+                        </Button>
                     </div>
 
                     {error && (
-                        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 text-[var(--danger)] rounded text-xs sm:text-sm text-center">
+                        <div className="mt-2 p-2 bg-destructive/10 text-destructive rounded text-xs sm:text-sm text-center">
                             {error}
                         </div>
                     )}

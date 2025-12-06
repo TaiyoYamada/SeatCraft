@@ -3,6 +3,9 @@
 import { useState } from "react";
 import type { CreateMemberInput, Gender } from "../types";
 import { GENDER_OPTIONS } from "../types";
+import { Button } from "@/shared/components/ui/Button";
+import { cn } from "@/lib/utils";
+import { X, Plus, User, Hash, Tag } from "lucide-react";
 
 interface MemberFormProps {
     onSubmit: (input: CreateMemberInput) => void;
@@ -59,27 +62,39 @@ export function MemberForm({
         }
     };
 
+    const getGenderSelectionStyle = (optionValue: string, isSelected: boolean) => {
+        if (!isSelected) return "border-border hover:border-primary/50 hover:bg-secondary/50";
+        switch (optionValue) {
+            case "male": return "border-blue-200 bg-[var(--color-seat-male)] text-blue-700 shadow-sm";
+            case "female": return "border-pink-200 bg-[var(--color-seat-female)] text-pink-700 shadow-sm";
+            default: return "border-border bg-secondary text-foreground shadow-sm";
+        }
+    }
+
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name */}
-            <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-1">
-                    名前 <span className="text-[var(--danger)]">*</span>
+            <div className="space-y-1.5">
+                <label htmlFor="name" className="text-sm font-medium flex items-center gap-1.5 text-foreground">
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
+                    名前 <span className="text-destructive">*</span>
                 </label>
                 <input
                     type="text"
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="input"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-shadow duration-200 focus:shadow-[var(--shadow-sm)]"
                     placeholder="山田 太郎"
                     required
                 />
             </div>
 
             {/* Nickname */}
-            <div>
-                <label htmlFor="nickname" className="block text-sm font-medium mb-1">
+            <div className="space-y-1.5">
+                <label htmlFor="nickname" className="text-sm font-medium flex items-center gap-1.5 text-foreground">
+                    <Hash className="w-3.5 h-3.5 text-muted-foreground" />
                     ニックネーム・表示名
                 </label>
                 <input
@@ -87,25 +102,25 @@ export function MemberForm({
                     id="nickname"
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
-                    className="input"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-shadow duration-200 focus:shadow-[var(--shadow-sm)]"
                     placeholder="やまちゃん、1、A など"
                 />
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                    席に表示する名前（数字や記号も可）
+                <p className="text-[10px] text-muted-foreground">
+                    ※席に表示される短い名前
                 </p>
             </div>
 
             {/* Gender */}
-            <div>
-                <label className="block text-sm font-medium mb-2">性別</label>
-                <div className="flex gap-3">
+            <div className="space-y-2">
+                <label className="text-sm font-medium block text-foreground">性別</label>
+                <div className="grid grid-cols-3 gap-3">
                     {GENDER_OPTIONS.map((option) => (
                         <label
                             key={option.value}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${gender === option.value
-                                    ? "border-[var(--primary)] bg-[var(--primary)] bg-opacity-10"
-                                    : "border-[var(--border)] hover:border-[var(--primary)]"
-                                }`}
+                            className={cn(
+                                "flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-xl border cursor-pointer transition-all duration-200",
+                                getGenderSelectionStyle(option.value, gender === option.value)
+                            )}
                         >
                             <input
                                 type="radio"
@@ -115,15 +130,18 @@ export function MemberForm({
                                 onChange={(e) => setGender(e.target.value as Gender)}
                                 className="sr-only"
                             />
-                            <span className="text-sm">{option.label}</span>
+                            <span className="text-sm font-medium">
+                                {option.label}
+                            </span>
                         </label>
                     ))}
                 </div>
             </div>
 
             {/* Tags */}
-            <div>
-                <label htmlFor="tags" className="block text-sm font-medium mb-1">
+            <div className="space-y-2">
+                <label htmlFor="tags" className="text-sm font-medium flex items-center gap-1.5 text-foreground">
+                    <Tag className="w-3.5 h-3.5 text-muted-foreground" />
                     タグ
                 </label>
                 <div className="flex gap-2">
@@ -133,31 +151,32 @@ export function MemberForm({
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
                         onKeyDown={handleTagKeyDown}
-                        className="input flex-1"
-                        placeholder="部署名、役職など"
+                        className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="部署, 役職..."
                     />
-                    <button
+                    <Button
                         type="button"
+                        variant="secondary"
                         onClick={handleAddTag}
-                        className="btn btn-secondary"
+                        className="shrink-0"
                     >
-                        追加
-                    </button>
+                        <Plus className="w-4 h-4" />
+                    </Button>
                 </div>
                 {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex flex-wrap gap-2 pt-2">
                         {tags.map((tag) => (
                             <span
                                 key={tag}
-                                className="badge badge-primary flex items-center gap-1"
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border"
                             >
                                 {tag}
                                 <button
                                     type="button"
                                     onClick={() => handleRemoveTag(tag)}
-                                    className="hover:text-[var(--danger)] transition-colors"
+                                    className="hover:text-destructive transition-colors ml-0.5"
                                 >
-                                    ×
+                                    <X className="w-3 h-3" />
                                 </button>
                             </span>
                         ))}
@@ -165,10 +184,10 @@ export function MemberForm({
                 )}
             </div>
 
-            {/* Submit */}
-            <button type="submit" className="btn btn-primary w-full">
+            <Button type="submit" className="w-full mt-4 shadow-md hover:shadow-xl transition-shadow">
                 {submitLabel}
-            </button>
+            </Button>
         </form>
+
     );
 }

@@ -2,6 +2,8 @@
 
 import type { SeatTemplate, SeatTemplateType } from "../types";
 import { SEAT_TEMPLATES } from "../types";
+import { cn } from "@/lib/utils";
+import { CheckCircle2, LayoutGrid, CircleDot, Grid, MousePointerClick } from "lucide-react";
 
 interface TemplateSelectorProps {
     selected: SeatTemplateType | null;
@@ -10,7 +12,7 @@ interface TemplateSelectorProps {
 
 export function TemplateSelector({ selected, onSelect }: TemplateSelectorProps) {
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {SEAT_TEMPLATES.map((template) => (
                 <TemplateCard
                     key={template.type}
@@ -35,101 +37,44 @@ function TemplateCard({
     return (
         <button
             onClick={onClick}
-            className={`card text-left transition-all hover:shadow-lg ${isSelected
-                    ? "ring-2 ring-[var(--primary)] border-[var(--primary)]"
-                    : "hover:border-[var(--primary)]"
-                }`}
+            className={cn(
+                "relative flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-200 w-full text-left bg-card hover:shadow-md",
+                isSelected
+                    ? "border-primary ring-offset-2"
+                    : "border-border hover:border-primary/50"
+            )}
         >
             {/* Icon */}
-            <div className="text-4xl mb-4 h-16 flex items-center justify-center bg-[var(--secondary)] rounded-lg">
-                <TemplatePreview type={template.type} />
+            <div className={cn(
+                "mb-4 h-12 w-12 flex items-center justify-center rounded-lg transition-colors",
+                isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+            )}>
+                <TemplateIcon type={template.type} />
             </div>
 
             {/* Info */}
-            <h3 className="font-semibold text-lg mb-1">{template.name}</h3>
-            <p className="text-sm text-[var(--text-muted)]">{template.description}</p>
+            <h3 className="font-semibold text-base mb-1 text-foreground">{template.name}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">{template.description}</p>
 
             {/* Selected indicator */}
             {isSelected && (
-                <div className="mt-4 flex items-center gap-2 text-[var(--primary)]">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
-                    <span className="text-sm font-medium">選択中</span>
+                <div className="absolute top-4 right-4 text-primary animate-in zoom-in spin-in-180 duration-300">
+                    <CheckCircle2 className="w-5 h-5" />
                 </div>
             )}
         </button>
     );
 }
 
-function TemplatePreview({ type }: { type: SeatTemplateType }) {
+function TemplateIcon({ type }: { type: SeatTemplateType }) {
     switch (type) {
         case "line":
-            return (
-                <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="w-6 h-6 rounded-md bg-[var(--primary)] opacity-80"
-                        />
-                    ))}
-                </div>
-            );
+            return <LayoutGrid className="w-6 h-6" />;
         case "circle":
-            return (
-                <div className="relative w-16 h-16">
-                    {[...Array(8)].map((_, i) => {
-                        const angle = (2 * Math.PI * i) / 8 - Math.PI / 2;
-                        const x = 50 + 40 * Math.cos(angle);
-                        const y = 50 + 40 * Math.sin(angle);
-                        return (
-                            <div
-                                key={i}
-                                className="absolute w-4 h-4 rounded-full bg-[var(--primary)] opacity-80"
-                                style={{
-                                    left: `${x}%`,
-                                    top: `${y}%`,
-                                    transform: "translate(-50%, -50%)",
-                                }}
-                            />
-                        );
-                    })}
-                </div>
-            );
+            return <CircleDot className="w-6 h-6" />;
         case "island":
-            return (
-                <div className="grid grid-cols-2 gap-3">
-                    {[...Array(2)].map((_, i) => (
-                        <div key={i} className="grid grid-cols-2 gap-1">
-                            {[...Array(4)].map((_, j) => (
-                                <div
-                                    key={j}
-                                    className="w-3 h-3 rounded-sm bg-[var(--primary)] opacity-80"
-                                />
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            );
+            return <Grid className="w-6 h-6" />;
         case "custom":
-            return (
-                <svg
-                    className="w-10 h-10 text-[var(--primary)] opacity-80"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
-                </svg>
-            );
+            return <MousePointerClick className="w-6 h-6" />;
     }
 }
