@@ -4,6 +4,7 @@ import * as fs from 'fs';
 const handlers = [
     { name: 'shuffle-handler', entry: 'src/infrastructure/handlers/shuffle-handler.ts' },
     { name: 'result-handler', entry: 'src/infrastructure/handlers/result-handler.ts' },
+    { name: 'save-handler', entry: 'src/infrastructure/handlers/save-handler.ts' },
 ];
 
 async function build() {

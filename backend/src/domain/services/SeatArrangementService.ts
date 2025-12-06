@@ -7,6 +7,17 @@ import type { Member, Seat, Constraint, SeatAssignment } from '../entities.js';
 import { areSeatsAdjacent } from '../value-objects.js';
 
 /**
+ * 男女配置モード
+ */
+export type GenderArrangementMode =
+    | 'random'       // 完全ランダム
+    | 'alternate'    // 男女交互
+    | 'femaleFirst'  // 女性を前列（座席番号が小さい方）
+    | 'maleFront'    // 男性を前列
+    | 'femaleLast'   // 女性を後列
+    | 'maleLast';    // 男性を後列
+
+/**
  * 席配置サービスの結果
  */
 export interface ArrangementResult {
@@ -21,20 +32,17 @@ export interface ArrangementResult {
 export interface ArrangementOptions {
     maxRetries?: number;
     adjacencyThreshold?: number;
+    genderMode?: GenderArrangementMode;
 }
 
 const DEFAULT_OPTIONS: Required<ArrangementOptions> = {
     maxRetries: 100,
     adjacencyThreshold: 50,
+    genderMode: 'random',
 };
 
 /**
  * 制約付き席配置を行う純粋関数
- * 
- * アルゴリズム:
- * 1. 固定席の配置
- * 2. NG ペア制約を考慮しながらシャッフル
- * 3. 男女バランスを考慮した微調整
  */
 export function arrangeSeats(
     members: Member[],
@@ -75,10 +83,15 @@ export function arrangeSeats(
         (c) => c.type === 'ngPair'
     ) as Extract<Constraint, { type: 'ngPair' }>[];
 
-    // 男女バランスの有無
+    // 男女バランスの有無（後方互換性）
     const hasGenderBalance = enabledConstraints.some(
         (c) => c.type === 'genderBalance'
     );
+
+    // genderMode の決定
+    const genderMode = hasGenderBalance && opts.genderMode === 'random'
+        ? 'alternate'
+        : opts.genderMode;
 
     // 初期配置の生成
     let bestAssignments: SeatAssignment[] = [];
@@ -90,7 +103,7 @@ export function arrangeSeats(
             seats,
             fixedSeatConstraints,
             ngPairConstraints,
-            hasGenderBalance,
+            genderMode,
             opts.adjacencyThreshold
         );
 
@@ -132,12 +145,20 @@ function tryArrangement(
     seats: Seat[],
     fixedSeatConstraints: Extract<Constraint, { type: 'fixedSeat' }>[],
     ngPairConstraints: Extract<Constraint, { type: 'ngPair' }>[],
-    hasGenderBalance: boolean,
+    genderMode: GenderArrangementMode,
     adjacencyThreshold: number
 ): { assignments: SeatAssignment[]; score: number } {
     const assignments: SeatAssignment[] = [];
     const usedSeatIds = new Set<string>();
     const assignedMemberIds = new Set<string>();
+
+    // 座席を位置でソート（前列 = Y座標が小さい、または左 = X座標が小さい）
+    const sortedSeats = [...seats].sort((a, b) => {
+        if (a.position.y !== b.position.y) {
+            return a.position.y - b.position.y;
+        }
+        return a.position.x - b.position.x;
+    });
 
     // 1. 固定席を先に配置
     for (const constraint of fixedSeatConstraints) {
@@ -156,42 +177,16 @@ function tryArrangement(
 
     // 2. 残りのメンバーと座席を取得
     const remainingMembers = members.filter((m) => !assignedMemberIds.has(m.id));
-    const remainingSeats = seats.filter((s) => !usedSeatIds.has(s.id));
+    const remainingSeats = sortedSeats.filter((s) => !usedSeatIds.has(s.id));
 
-    // シャッフル
-    const shuffledMembers = shuffleArray([...remainingMembers]);
+    // 3. 男女配置モードに応じてメンバーをソート
+    const orderedMembers = orderMembersByGenderMode(remainingMembers, genderMode);
 
-    // 男女バランスを考慮する場合、交互に配置を試みる
-    if (hasGenderBalance) {
-        shuffledMembers.sort((a, b) => {
-            if (a.gender === b.gender) return 0;
-            // 男女交互になるようにソート
-            return a.gender === 'male' ? -1 : 1;
-        });
-
-        // 交互に並べ替え
-        const males = shuffledMembers.filter((m) => m.gender === 'male');
-        const females = shuffledMembers.filter((m) => m.gender === 'female');
-        const others = shuffledMembers.filter((m) => m.gender === 'other');
-
-        const interleaved: Member[] = [];
-        const maxLen = Math.max(males.length, females.length, others.length);
-
-        for (let i = 0; i < maxLen; i++) {
-            if (i < males.length) interleaved.push(males[i]);
-            if (i < females.length) interleaved.push(females[i]);
-            if (i < others.length) interleaved.push(others[i]);
-        }
-
-        shuffledMembers.length = 0;
-        shuffledMembers.push(...interleaved);
-    }
-
-    // 3. 残りのメンバーを座席に配置
-    for (let i = 0; i < shuffledMembers.length && i < remainingSeats.length; i++) {
+    // 4. 残りのメンバーを座席に配置
+    for (let i = 0; i < orderedMembers.length && i < remainingSeats.length; i++) {
         assignments.push({
             seatId: remainingSeats[i].id,
-            memberId: shuffledMembers[i].id,
+            memberId: orderedMembers[i].id,
         });
     }
 
@@ -204,6 +199,69 @@ function tryArrangement(
     );
 
     return { assignments, score: -score };
+}
+
+/**
+ * 男女配置モードに応じてメンバーを並べる
+ */
+function orderMembersByGenderMode(
+    members: Member[],
+    mode: GenderArrangementMode
+): Member[] {
+    const shuffled = shuffleArray([...members]);
+
+    switch (mode) {
+        case 'random':
+            return shuffled;
+
+        case 'alternate': {
+            // 男女交互に配置
+            const males = shuffled.filter((m) => m.gender === 'male');
+            const females = shuffled.filter((m) => m.gender === 'female');
+            const others = shuffled.filter((m) => m.gender === 'other');
+
+            const result: Member[] = [];
+            const maxLen = Math.max(males.length, females.length);
+
+            for (let i = 0; i < maxLen; i++) {
+                if (i < males.length) result.push(males[i]);
+                if (i < females.length) result.push(females[i]);
+            }
+            result.push(...others);
+            return result;
+        }
+
+        case 'femaleFirst': {
+            // 女性を前列に
+            const females = shuffled.filter((m) => m.gender === 'female');
+            const others = shuffled.filter((m) => m.gender !== 'female');
+            return [...females, ...others];
+        }
+
+        case 'maleFront': {
+            // 男性を前列に
+            const males = shuffled.filter((m) => m.gender === 'male');
+            const others = shuffled.filter((m) => m.gender !== 'male');
+            return [...males, ...others];
+        }
+
+        case 'femaleLast': {
+            // 女性を後列に
+            const nonFemales = shuffled.filter((m) => m.gender !== 'female');
+            const females = shuffled.filter((m) => m.gender === 'female');
+            return [...nonFemales, ...females];
+        }
+
+        case 'maleLast': {
+            // 男性を後列に
+            const nonMales = shuffled.filter((m) => m.gender !== 'male');
+            const males = shuffled.filter((m) => m.gender === 'male');
+            return [...nonMales, ...males];
+        }
+
+        default:
+            return shuffled;
+    }
 }
 
 /**

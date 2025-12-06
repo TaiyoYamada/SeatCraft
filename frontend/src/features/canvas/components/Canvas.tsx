@@ -8,10 +8,13 @@ import { MemberPanel } from "./MemberPanel";
 import { snapToGrid } from "@/features/layouts/utils/template-generators";
 
 export function Canvas() {
+    const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
     const [draggedMemberId, setDraggedMemberId] = useState<string | null>(null);
+    const [showMemberPanel, setShowMemberPanel] = useState(true);
+    const [isMobile, setIsMobile] = useState(false);
 
     const {
         canvasWidth,
@@ -27,6 +30,19 @@ export function Canvas() {
     } = useCanvasStore();
 
     const members = useMembersStore((state) => state.members);
+
+    // レスポンシブ検出
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+            if (window.innerWidth < 768) {
+                setShowMemberPanel(false);
+            }
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
 
     // マウスホイールでズーム
     const handleWheel = useCallback(
@@ -50,6 +66,20 @@ export function Canvas() {
         [viewport.x, viewport.y]
     );
 
+    // タッチ開始
+    const handleTouchStart = useCallback(
+        (e: React.TouchEvent) => {
+            if (e.touches.length === 1) {
+                setIsPanning(true);
+                setPanStart({
+                    x: e.touches[0].clientX - viewport.x,
+                    y: e.touches[0].clientY - viewport.y,
+                });
+            }
+        },
+        [viewport.x, viewport.y]
+    );
+
     // パン中
     const handleMouseMove = useCallback(
         (e: React.MouseEvent) => {
@@ -63,8 +93,21 @@ export function Canvas() {
         [isPanning, panStart, setViewport]
     );
 
+    // タッチ移動
+    const handleTouchMove = useCallback(
+        (e: React.TouchEvent) => {
+            if (isPanning && e.touches.length === 1) {
+                setViewport({
+                    x: e.touches[0].clientX - panStart.x,
+                    y: e.touches[0].clientY - panStart.y,
+                });
+            }
+        },
+        [isPanning, panStart, setViewport]
+    );
+
     // パン終了
-    const handleMouseUp = useCallback(() => {
+    const handlePanEnd = useCallback(() => {
         setIsPanning(false);
     }, []);
 
@@ -105,41 +148,81 @@ export function Canvas() {
     );
 
     return (
-        <div className="flex h-full">
+        <div className="flex h-full relative">
+            {/* Member Panel Toggle (Mobile) */}
+            {isMobile && (
+                <button
+                    onClick={() => setShowMemberPanel(!showMemberPanel)}
+                    className="absolute top-2 left-2 z-20 btn btn-secondary text-xs px-2 py-1"
+                >
+                    {showMemberPanel ? "✕" : `👤 ${unassignedMembers.length}`}
+                </button>
+            )}
+
             {/* Member Panel */}
-            <MemberPanel
-                members={unassignedMembers}
-                onDragStart={setDraggedMemberId}
-                onDragEnd={() => setDraggedMemberId(null)}
-            />
+            <div
+                className={`${isMobile
+                        ? `absolute inset-y-0 left-0 z-10 transition-transform duration-300 ${showMemberPanel ? "translate-x-0" : "-translate-x-full"
+                        }`
+                        : ""
+                    }`}
+            >
+                <MemberPanel
+                    members={unassignedMembers}
+                    onDragStart={setDraggedMemberId}
+                    onDragEnd={() => setDraggedMemberId(null)}
+                />
+            </div>
 
             {/* Canvas */}
             <div
-                className="flex-1 overflow-hidden bg-[var(--secondary)] relative"
+                ref={containerRef}
+                className="flex-1 overflow-hidden bg-[var(--secondary)] relative touch-none"
                 onWheel={handleWheel}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onMouseUp={handlePanEnd}
+                onMouseLeave={handlePanEnd}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handlePanEnd}
             >
                 {/* Zoom indicator */}
-                <div className="absolute top-4 right-4 z-10 bg-[var(--card-bg)] px-3 py-1 rounded-lg shadow text-sm">
+                <div className="absolute top-2 right-2 z-10 bg-[var(--card-bg)] px-2 py-1 rounded-lg shadow text-xs sm:text-sm">
                     {Math.round(viewport.zoom * 100)}%
                 </div>
+
+                {/* Zoom controls (Mobile) */}
+                {isMobile && (
+                    <div className="absolute bottom-4 right-2 z-10 flex flex-col gap-1">
+                        <button
+                            onClick={() => setViewport({ zoom: Math.min(2, viewport.zoom + 0.1) })}
+                            className="btn btn-secondary text-lg w-8 h-8 p-0"
+                        >
+                            +
+                        </button>
+                        <button
+                            onClick={() => setViewport({ zoom: Math.max(0.25, viewport.zoom - 0.1) })}
+                            className="btn btn-secondary text-lg w-8 h-8 p-0"
+                        >
+                            −
+                        </button>
+                    </div>
+                )}
 
                 {/* Canvas area */}
                 <div
                     ref={canvasRef}
-                    className="absolute cursor-grab"
+                    className="absolute cursor-grab active:cursor-grabbing"
                     style={{
                         width: canvasWidth,
                         height: canvasHeight,
                         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
                         transformOrigin: "0 0",
                         background: `
-              linear-gradient(to right, var(--border) 1px, transparent 1px),
-              linear-gradient(to bottom, var(--border) 1px, transparent 1px)
-            `,
+                            linear-gradient(to right, var(--border) 1px, transparent 1px),
+                            linear-gradient(to bottom, var(--border) 1px, transparent 1px)
+                        `,
                         backgroundSize: `${gridSize}px ${gridSize}px`,
                         backgroundColor: "var(--card-bg)",
                         borderRadius: "8px",
@@ -163,9 +246,9 @@ export function Canvas() {
                 {/* Instructions */}
                 {seats.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="text-center text-[var(--text-muted)]">
-                            <p className="text-lg">座席がありません</p>
-                            <p className="text-sm mt-1">テンプレートを選択するか、手動で追加してください</p>
+                        <div className="text-center text-[var(--text-muted)] px-4">
+                            <p className="text-base sm:text-lg">座席がありません</p>
+                            <p className="text-xs sm:text-sm mt-1">テンプレートを選択してください</p>
                         </div>
                     </div>
                 )}

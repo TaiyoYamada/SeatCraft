@@ -68,6 +68,24 @@ Resources:
             Path: /result/{id}
             Method: GET
 
+  # POST /save
+  SaveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'seatcraft-save-${Stage}'
+      CodeUri: dist/
+      Handler: save-handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "seatcraft_layouts_${Stage}"
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SeatCraftApi
+            Path: /save
+            Method: POST
+
 Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL
