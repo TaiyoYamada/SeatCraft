@@ -8,7 +8,7 @@ import { MemberPanel } from "./MemberPanel";
 import { snapToGrid } from "@/features/layouts/utils/template-generators";
 import { useGesture } from "@use-gesture/react";
 import { Button } from "@/shared/components/ui/Button";
-import { ZoomIn, ZoomOut, Plus, Minus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ZoomIn, ZoomOut, Plus, Minus } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 
 export function Canvas() {
@@ -51,16 +51,22 @@ export function Canvas() {
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
-    // Gesture handling (Zoom only - no pan)
+    // Gesture handling (Zoom & Pan on background only)
     useGesture(
         {
+            onDrag: ({ offset: [x, y], event }) => {
+                // Only pan if clicking on the background container itself
+                const target = event?.target as HTMLElement;
+                if (target && target === containerRef.current) {
+                    setViewport({ x, y });
+                }
+            },
             onWheel: ({ delta: [, dy], metaKey, ctrlKey }) => {
                 // If ctrl/meta is pressed, treat as zoom (standard trackpad behavior)
                 if (metaKey || ctrlKey) {
                     const newZoom = Math.max(0.25, Math.min(2, viewport.zoom - dy * 0.01));
                     setViewport({ zoom: newZoom });
                 }
-                // Removed: pan on scroll
             },
             onPinch: ({ offset: [z] }) => {
                 setViewport({ zoom: z });
@@ -68,6 +74,10 @@ export function Canvas() {
         },
         {
             target: containerRef,
+            drag: {
+                from: () => [viewport.x, viewport.y],
+                filterTaps: true,
+            },
             pinch: {
                 scaleBounds: { min: 0.25, max: 2 },
                 modifierKey: null,
@@ -174,50 +184,6 @@ export function Canvas() {
                     </div>
                 )}
 
-                {/* Pan Controls */}
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-                    <div className="bg-background/90 backdrop-blur rounded-lg shadow-sm border border-border p-1">
-                        <div className="grid grid-cols-3 gap-0.5">
-                            <div />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setViewport({ y: viewport.y + 50 })}
-                            >
-                                <ChevronUp className="h-4 w-4" />
-                            </Button>
-                            <div />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setViewport({ x: viewport.x + 50 })}
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-                            <div className="w-8 h-8" />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setViewport({ x: viewport.x - 50 })}
-                            >
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                            <div />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setViewport({ y: viewport.y - 50 })}
-                            >
-                                <ChevronDown className="h-4 w-4" />
-                            </Button>
-                            <div />
-                        </div>
-                    </div>
-                </div>
 
                 {/* Zoom Controls */}
                 <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">

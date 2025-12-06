@@ -112,7 +112,7 @@ export default function CraftPage() {
     };
 
     return (
-        <div className="h-[calc(100vh-4rem)] pt-16 flex flex-col">
+        <div className="h-[calc(100vh-4rem)] mt-16 flex flex-col">
             {/* Toolbar */}
             <div className="bg-background border-b border-border p-2 sm:p-4 shadow-sm">
                 <div className="max-w-7xl mx-auto">
