@@ -2,17 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: SeatCraft API - 席配置サービス
 
-Globals:
-  Function:
-    Runtime: nodejs22.x
-    Timeout: 30
-    MemorySize: 256
-    Handler: index.handler
-    Environment:
-      Variables:
-        TABLE_NAME: !Ref LayoutsTable
-        IS_LOCAL: 'false'
-
 Parameters:
   Stage:
     Type: String
@@ -21,6 +10,16 @@ Parameters:
       - dev
       - staging
       - prod
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        TABLE_NAME: !Sub "seatcraft_layouts_${Stage}"
+        IS_LOCAL: 'false'
 
 Resources:
   # API Gateway
@@ -38,10 +37,11 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub 'seatcraft-shuffle-${Stage}'
-      CodeUri: dist/shuffle-handler/
+      CodeUri: dist/
+      Handler: shuffle-handler.handler
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref LayoutsTable
+            TableName: !Sub "seatcraft_layouts_${Stage}"
       Events:
         Api:
           Type: Api
@@ -55,10 +55,11 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub 'seatcraft-result-${Stage}'
-      CodeUri: dist/result-handler/
+      CodeUri: dist/
+      Handler: result-handler.handler
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Ref LayoutsTable
+            TableName: !Sub "seatcraft_layouts_${Stage}"
       Events:
         Api:
           Type: Api
@@ -67,32 +68,15 @@ Resources:
             Path: /result/{id}
             Method: GET
 
-  # DynamoDB Table
-  # LayoutsTable:
-  #   Type: AWS::DynamoDB::Table
-  #   Properties:
-  #     TableName: !Sub 'seatcraft_layouts_${Stage}'
-  #     BillingMode: PAY_PER_REQUEST
-  #     AttributeDefinitions:
-  #       - AttributeName: id
-  #         AttributeType: S
-  #     KeySchema:
-  #       - AttributeName: id
-  #         KeyType: HASH
-
 Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL
     Value: !Sub 'https://${SeatCraftApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
-  
+
   ShuffleFunctionArn:
     Description: Shuffle Lambda Function ARN
     Value: !GetAtt ShuffleFunction.Arn
-  
+
   ResultFunctionArn:
     Description: Result Lambda Function ARN
     Value: !GetAtt ResultFunction.Arn
-  
-  TableName:
-    Description: DynamoDB Table Name
-    Value: !Ref LayoutsTable

@@ -1,6 +1,5 @@
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
-import * as path from 'path';
 
 const handlers = [
     { name: 'shuffle-handler', entry: 'src/infrastructure/handlers/shuffle-handler.ts' },
@@ -12,23 +11,22 @@ async function build() {
     if (fs.existsSync('dist')) {
         fs.rmSync('dist', { recursive: true });
     }
+    fs.mkdirSync('dist');
 
     for (const handler of handlers) {
-        const outdir = path.join('dist', handler.name);
-
         await esbuild.build({
             entryPoints: [handler.entry],
             bundle: true,
             platform: 'node',
             target: 'node22',
-            outfile: path.join(outdir, 'index.js'),
-            format: 'cjs', // Lambda は CommonJS の方が安定
+            outfile: `dist/${handler.name}.js`,
+            format: 'cjs',
             external: ['@aws-sdk/*'],
             sourcemap: false,
             minify: false,
         });
 
-        console.log(`✓ Built ${handler.name}`);
+        console.log(`✓ Built ${handler.name}.js`);
     }
 
     console.log('\n✅ Build completed successfully!');
