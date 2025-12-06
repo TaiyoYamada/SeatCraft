@@ -50,7 +50,7 @@ export default function AIConsultPage() {
             if (data.error) {
                 setMessages((prev) => [
                     ...prev,
-                    { role: "model", content: "申し訳ございません。エラーが発生しました。" },
+                    { role: "model", content: `エラー: ${data.error}` },
                 ]);
             } else {
                 setMessages((prev) => [
@@ -134,8 +134,8 @@ export default function AIConsultPage() {
                             )}
                             <div
                                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === "user"
-                                        ? "bg-[var(--color-accent)] text-white"
-                                        : "bg-background border border-border"
+                                    ? "bg-[var(--color-accent)] text-white"
+                                    : "bg-background border border-border"
                                     }`}
                             >
                                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>

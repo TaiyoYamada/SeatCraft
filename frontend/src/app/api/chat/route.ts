@@ -59,8 +59,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ response });
     } catch (error) {
         console.error('Gemini API error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json(
-            { error: 'Failed to get response from AI' },
+            { error: `Failed to get response from AI: ${errorMessage}` },
             { status: 500 }
         );
     }
