@@ -171,7 +171,7 @@ export default function ResultPage() {
     const scale = Math.min(1, maxDisplayWidth / result.settings.canvasWidth);
 
     return (
-        <div className="min-h-screen py-4 sm:py-8 bg-[var(--color-bg-secondary)]">
+        <div className="min-h-screen pt-24 pb-4 sm:pb-8 bg-[var(--color-bg-secondary)]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
@@ -241,8 +241,8 @@ export default function ResultPage() {
                                     <div
                                         key={seat.id}
                                         className={`absolute rounded-xl flex items-center justify-center border-2 shadow-sm ${member
-                                                ? getGenderColor(member.gender)
-                                                : "bg-background border-dashed border-border"
+                                            ? getGenderColor(member.gender)
+                                            : "bg-background border-dashed border-border"
                                             }`}
                                         style={{
                                             left: seat.position.x,
