@@ -1,0 +1,32 @@
+{
+    "name": "@seatcraft/backend",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "esbuild src/infrastructure/handlers/*.ts --bundle --platform=node --target=node22 --outdir=dist --format=esm --external:@aws-sdk/*",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "type-check": "tsc --noEmit",
+        "lint": "eslint src --ext .ts",
+        "format": "prettier --write \"src/**/*.ts\""
+    },
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.712.0",
+        "@aws-sdk/lib-dynamodb": "^3.712.0",
+        "uuid": "^11.0.3",
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.147",
+        "@types/node": "^22.10.2",
+        "@types/uuid": "^10.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.18.0",
+        "@typescript-eslint/parser": "^8.18.0",
+        "esbuild": "^0.24.0",
+        "eslint": "^9.16.0",
+        "prettier": "^3.4.2",
+        "typescript": "^5.7.2",
+        "vitest": "^2.1.8"
+    }
+}
