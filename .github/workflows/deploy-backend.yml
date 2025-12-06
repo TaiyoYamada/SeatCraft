@@ -48,4 +48,11 @@ jobs:
         run: sam build
 
       - name: SAM Deploy
-        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
+        run: |
+          sam deploy \
+            --stack-name seatcraft-backend \
+            --s3-bucket ${{ secrets.SAM_S3_BUCKET }} \
+            --capabilities CAPABILITY_IAM \
+            --region ap-northeast-1 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
