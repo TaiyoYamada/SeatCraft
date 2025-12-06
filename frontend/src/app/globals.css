@@ -19,9 +19,12 @@
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
 
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: var(--color-accent-muted);
+  --color-border: var(--color-seat-border);
+  --color-input: var(--color-seat-border);
+  --color-ring: var(--color-accent);
+
+  --color-card: #ffffff;
+  --color-card-foreground: var(--color-text);
 
   --radius-lg: 0.75rem;
   --radius-md: 0.5rem;
@@ -36,51 +39,51 @@
 
 :root {
   /* SeatCraft Official Color Theme */
-  --color-bg: #FAFAFA;
-  --color-bg-secondary: #F3F3F3;
+  --color-bg: #F8F9FA;
+  --color-bg-secondary: #EEF1F4;
   --color-text: #111111;
   --color-text-secondary: #555555;
 
-  --color-accent: #4FA3F7;
-  --color-accent-muted: #D8EBFF;
+  /* Main Accent - Sky Blue */
+  --color-accent: #3B82F6;
+  --color-accent-muted: #DBEAFE;
 
-  --color-accent-secondary: #7AD3B6;
-  --color-accent-secondary-muted: #E3F7F1;
+  /* Secondary Accent - Emerald */
+  --color-accent-secondary: #10B981;
+  --color-accent-secondary-muted: #D1FAE5;
 
+  /* Seat Colors */
   --color-seat-default: #FFFFFF;
-  --color-seat-border: #E0E0E0;
-  --color-seat-male: #E8F3FF;
-  --color-seat-female: #FDECF5;
-  --color-seat-selected: #DCEFFF;
+  --color-seat-border: #D1D5DB;
+  --color-seat-male: #DBEAFE;
+  --color-seat-female: #FCE7F3;
+  --color-seat-selected: #BFDBFE;
 
   /* Shadows */
-  --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0px 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0px 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .dark {
-  /* Dark mode mappings (if needed, though user specified precise colors, usually better to adapt lightly or stick to light mode if strict) */
-  /* For now, mapping logical inverses or keeping as is if user wants strict adherence. 
-     Given "Apple/Vercel" vibe, they usually have dark mode. I'll provide a high quality dark mapping. */
-  --color-bg: #111111;
-  --color-bg-secondary: #1a1a1a;
-  --color-text: #fafafa;
-  --color-text-secondary: #a1a1aa;
+  --color-bg: #0F172A;
+  --color-bg-secondary: #1E293B;
+  --color-text: #F8FAFC;
+  --color-text-secondary: #94A3B8;
 
-  --color-accent: #3b82f6;
-  --color-accent-muted: #1e3a8a;
+  --color-accent: #3B82F6;
+  --color-accent-muted: #1E40AF;
 
-  --color-accent-secondary: #10b981;
-  --color-accent-secondary-muted: #064e3b;
+  --color-accent-secondary: #10B981;
+  --color-accent-secondary-muted: #065F46;
 
-  --color-seat-default: #1a1a1a;
-  --color-seat-border: #333333;
-  --color-seat-male: #1e3a8a;
+  --color-seat-default: #1E293B;
+  --color-seat-border: #334155;
+  --color-seat-male: #1E3A8A;
   --color-seat-female: #831843;
-  --color-seat-selected: #172554;
+  --color-seat-selected: #1E40AF;
 
-  --color-border: #333333;
-  --color-input: #333333;
+  --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0px 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 @layer base {
