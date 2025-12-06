@@ -1,15 +1,18 @@
-# SeatCraft
+# 🪑 SeatCraft
 
 飲み会や会議などの「席決め」を行う Web アプリケーション。
 
 ## 特徴
 
-- **メンバー管理**: 名前、ニックネーム、性別、タグを設定してメンバーを登録
+- **メンバー管理**: 名前、ニックネーム、性別を設定してメンバーを登録
 - **テンプレート選択**: 直線型、円卓型、島型などのレイアウトテンプレート
-- **自由レイアウト**: キャンバス上で席や人を自由にドラッグ＆ドロップ
-- **制約設定**: 男女バランス、固定席、NGペアなどの制約条件
-- **自動配置**: 制約を考慮した席配置を自動生成
+- **自由レイアウト**: キャンバス上で席や人を自由に配置
+  - デスクトップ: ドラッグ＆ドロップ
+  - モバイル: タップ選択方式
+- **制約設定**: 男女バランス、固定席などの制約条件
+- **自動配置**: シャッフル機能で席配置を自動生成
 - **URL共有**: 結果レイアウトを保存し、URLで共有
+- **AI相談**: Gemini AIによる座席配置のアドバイス
 
 ## アーキテクチャ
 
@@ -17,8 +20,9 @@
 SeatCraft/
 ├── frontend/          # Next.js 15 (App Router)
 ├── backend/           # AWS Lambda + SAM
-├── infrastructure/    # Terraform
+├── infrastructure/    # Terraform (DynamoDB)
 ├── shared-types/      # 共有型定義
+├── .github/workflows/ # CI/CD
 └── docker-compose.yml # DynamoDB Local
 ```
 
@@ -29,47 +33,21 @@ SeatCraft/
 - Node.js 22.x
 - Docker & Docker Compose
 - AWS SAM CLI (ローカル開発用)
-- Terraform (インフラ構築用)
 
 ### ローカル開発
-
-1. **依存関係のインストール**
 
 ```bash
 # フロントエンド
 cd frontend && npm install
+npm run dev
 
 # バックエンド
 cd backend && npm install
-
-# 共有型
-cd shared-types && npm install
-```
-
-2. **DynamoDB Local の起動**
-
-```bash
-docker-compose up -d
-```
-
-3. **ローカルテーブルの作成**
-
-```bash
-./scripts/create-local-table.sh
-```
-
-4. **フロントエンドの起動**
-
-```bash
-cd frontend && npm run dev
-```
-
-5. **バックエンドの起動 (オプション)**
-
-```bash
-cd backend
 npm run build
 sam local start-api --env-vars env.json
+
+# DynamoDB Local
+docker-compose up -d
 ```
 
 ### 環境変数
@@ -78,90 +56,71 @@ sam local start-api --env-vars env.json
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3000
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash-lite  # 省略可
 ```
 
-#### バックエンド (env.json)
-
-```json
-{
-  "ShuffleFunction": {
-    "IS_LOCAL": "true",
-    "TABLE_NAME": "seatcraft_layouts"
-  },
-  "ResultFunction": {
-    "IS_LOCAL": "true",
-    "TABLE_NAME": "seatcraft_layouts"
-  }
-}
-```
-
-## ビルド
-
-### フロントエンド
+## 開発コマンド
 
 ```bash
-cd frontend && npm run build
-```
+# フロントエンド
+cd frontend
+npm run dev          # 開発サーバー
+npm run build        # ビルド
+npm run lint         # Lint
 
-### バックエンド
-
-```bash
-cd backend && npm run build
-```
-
-## テスト
-
-```bash
-# バックエンドテスト
-cd backend && npm test
-
-# 型チェック
-cd frontend && npm run type-check
-cd backend && npm run type-check
+# バックエンド
+cd backend
+npm run build        # ビルド
+npm run lint         # Lint
+npm run type-check   # 型チェック
+npm test             # テスト
 ```
 
 ## デプロイ
 
-### Terraform でインフラ構築
+### CI/CD (GitHub Actions)
 
-```bash
-cd infrastructure
-terraform init
-terraform plan
-terraform apply
-```
+- **CI**: `pull_request` / `push` で自動実行
+  - フロントエンド: lint → build
+  - バックエンド: type-check → lint → test → build
 
-### SAM でバックエンドデプロイ
+- **Backend Deploy**: `main` push で SAM 自動デプロイ
 
-```bash
-cd backend
-sam build
-sam deploy --guided
-```
+### 必要な GitHub Secrets
 
-## 技術スタック
+| Secret名 | 説明 |
+|---------|-----|
+| `AWS_ACCESS_KEY_ID` | AWSアクセスキー |
+| `AWS_SECRET_ACCESS_KEY` | AWSシークレットキー |
+| `SAM_S3_BUCKET` | SAMデプロイ用S3バケット |
+
+## 🛠️ 技術スタック
 
 ### フロントエンド
-
 - Next.js 15 (App Router)
 - TypeScript 5.7
 - Tailwind CSS 4
 - Zustand (状態管理)
-- @dnd-kit (ドラッグ＆ドロップ)
+- @use-gesture/react (ジェスチャー)
+- Framer Motion (アニメーション)
+- Google Generative AI (AI相談)
 
 ### バックエンド
-
 - AWS Lambda (Node.js 22)
 - AWS DynamoDB
 - AWS API Gateway
-- Zod (バリデーション)
-- AWS SDK v3
+- AWS SAM
 
 ### インフラ
+- Terraform
+- GitHub Actions
 
-- Terraform (AWS Provider v6)
-- AWS SAM
+## 対応デバイス
+
+- デスクトップ: Chrome, Safari, Firefox
+- モバイル: iOS Safari, Android Chrome
 
 ## ライセンス
 
-MIT License
+- MIT License
