@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Menu, X, ChevronRight } from "lucide-react";
+import { Menu, X, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "./ui/Button";
 
 const navItems = [
@@ -66,6 +66,17 @@ export function Header() {
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-3">
                         <div className="hidden md:flex items-center gap-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full px-5 shadow-sm hover:shadow-md border-[var(--color-accent)]/30"
+                                asChild
+                            >
+                                <Link href="/ai">
+                                    <Sparkles className="w-4 h-4 mr-1 text-[var(--color-accent)]" />
+                                    AIに相談
+                                </Link>
+                            </Button>
                             <Button size="sm" className="rounded-full px-5 shadow-sm hover:shadow-md" asChild>
                                 <Link href="/members">
                                     始める
@@ -115,7 +126,13 @@ export function Header() {
                                 </Link>
                             );
                         })}
-                        <div className="pt-4 mt-4 border-t border-border">
+                        <div className="pt-4 mt-4 border-t border-border space-y-2">
+                            <Button variant="outline" size="lg" className="w-full rounded-xl border-[var(--color-accent)]/30" asChild>
+                                <Link href="/ai" onClick={() => setIsMenuOpen(false)}>
+                                    <Sparkles className="w-4 h-4 mr-2 text-[var(--color-accent)]" />
+                                    AIに相談
+                                </Link>
+                            </Button>
                             <Button size="lg" className="w-full rounded-xl" asChild>
                                 <Link href="/members" onClick={() => setIsMenuOpen(false)}>
                                     今すぐ始める
