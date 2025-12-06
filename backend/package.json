@@ -2,9 +2,8 @@
     "name": "@seatcraft/backend",
     "version": "1.0.0",
     "private": true,
-    "type": "module",
     "scripts": {
-        "build": "esbuild src/infrastructure/handlers/*.ts --bundle --platform=node --target=node22 --outdir=dist --format=esm --external:@aws-sdk/*",
+        "build": "node scripts/build.mjs",
         "test": "vitest run",
         "test:watch": "vitest",
         "type-check": "tsc --noEmit",

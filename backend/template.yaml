@@ -68,17 +68,17 @@ Resources:
             Method: GET
 
   # DynamoDB Table
-  LayoutsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub 'seatcraft_layouts_${Stage}'
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
-      KeySchema:
-        - AttributeName: id
-          KeyType: HASH
+  # LayoutsTable:
+  #   Type: AWS::DynamoDB::Table
+  #   Properties:
+  #     TableName: !Sub 'seatcraft_layouts_${Stage}'
+  #     BillingMode: PAY_PER_REQUEST
+  #     AttributeDefinitions:
+  #       - AttributeName: id
+  #         AttributeType: S
+  #     KeySchema:
+  #       - AttributeName: id
+  #         KeyType: HASH
 
 Outputs:
   ApiEndpoint:
