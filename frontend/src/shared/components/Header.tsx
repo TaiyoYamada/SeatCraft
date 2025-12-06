@@ -66,12 +66,6 @@ export function Header() {
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-3">
                         <div className="hidden md:flex items-center gap-3">
-                            <Link
-                                href="/members"
-                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2"
-                            >
-                                使い方
-                            </Link>
                             <Button size="sm" className="rounded-full px-5 shadow-sm hover:shadow-md" asChild>
                                 <Link href="/members">
                                     始める

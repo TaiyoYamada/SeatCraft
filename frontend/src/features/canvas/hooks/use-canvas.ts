@@ -57,8 +57,8 @@ const MIN_SEATS = 1;
 export const useCanvasStore = create<CanvasState>()(
     persist(
         (set, get) => ({
-            canvasWidth: 1200,
-            canvasHeight: 800,
+            canvasWidth: 1600,
+            canvasHeight: 1200,
             gridSize: 20,
             viewport: DEFAULT_VIEWPORT,
             templateType: null,

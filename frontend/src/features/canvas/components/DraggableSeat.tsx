@@ -39,27 +39,43 @@ export function DraggableSeat({
             if (seat.isLocked) return;
 
             e.stopPropagation();
+            e.preventDefault();
             setIsDragging(true);
             setDragOffset({
                 x: e.clientX / zoom - seat.position.x,
                 y: e.clientY / zoom - seat.position.y,
             });
+
+            // Add document-level event listeners for smooth dragging
+            const handleDocumentMouseMove = (moveEvent: MouseEvent) => {
+                moveEvent.preventDefault();
+                moveEvent.stopPropagation();
+                const newX = moveEvent.clientX / zoom - (e.clientX / zoom - seat.position.x);
+                const newY = moveEvent.clientY / zoom - (e.clientY / zoom - seat.position.y);
+                onDrag(seat.id, newX, newY);
+            };
+
+            const handleDocumentMouseUp = () => {
+                setIsDragging(false);
+                document.removeEventListener('mousemove', handleDocumentMouseMove);
+                document.removeEventListener('mouseup', handleDocumentMouseUp);
+            };
+
+            document.addEventListener('mousemove', handleDocumentMouseMove);
+            document.addEventListener('mouseup', handleDocumentMouseUp);
         },
-        [seat.position, seat.isLocked, zoom]
+        [seat.position, seat.isLocked, seat.id, zoom, onDrag]
     );
 
     const handleMouseMove = useCallback(
         (e: React.MouseEvent) => {
+            // This is now handled at document level, keep for safety
             if (isDragging && !seat.isLocked) {
                 e.preventDefault();
                 e.stopPropagation();
-                // Adjust delta by zoom factor
-                const newX = e.clientX / zoom - dragOffset.x;
-                const newY = e.clientY / zoom - dragOffset.y;
-                onDrag(seat.id, newX, newY);
             }
         },
-        [isDragging, dragOffset, onDrag, seat.id, seat.isLocked, zoom]
+        [isDragging, seat.isLocked]
     );
 
     const handleMouseUp = useCallback(() => {

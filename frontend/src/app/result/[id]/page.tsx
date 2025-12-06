@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/shared/components/ui/Button";
-import { Copy, Check, Edit, Home, AlertCircle } from "lucide-react";
+import { Copy, Check, Edit, Home, AlertCircle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 interface LayoutResult {
     id: string;
@@ -39,6 +39,7 @@ export default function ResultPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [displayScale, setDisplayScale] = useState<number | null>(null); // null = auto-fit
 
     useEffect(() => {
         const fetchResult = async () => {
@@ -166,9 +167,43 @@ export default function ResultPage() {
         );
     }
 
-    // Calculate scale for responsive display
-    const maxDisplayWidth = 800;
-    const scale = Math.min(1, maxDisplayWidth / result.settings.canvasWidth);
+    // Calculate the actual bounds needed to display all seats
+    const calculateBounds = () => {
+        if (!result.settings.seats || result.settings.seats.length === 0) {
+            return { width: result.settings.canvasWidth, height: result.settings.canvasHeight };
+        }
+
+        let maxX = 0;
+        let maxY = 0;
+
+        for (const seat of result.settings.seats) {
+            const rightEdge = seat.position.x + seat.size.width;
+            const bottomEdge = seat.position.y + seat.size.height;
+            maxX = Math.max(maxX, rightEdge);
+            maxY = Math.max(maxY, bottomEdge);
+        }
+
+        // Add padding
+        const padding = 40;
+        return {
+            width: Math.max(maxX + padding, result.settings.canvasWidth),
+            height: Math.max(maxY + padding, result.settings.canvasHeight)
+        };
+    };
+
+    const bounds = calculateBounds();
+
+    // Get container width for responsive scaling (approximate, will be refined by CSS)
+    const containerWidth = typeof window !== 'undefined' ? Math.min(window.innerWidth - 32, 1200) : 800;
+
+    // Calculate auto-fit scale to show all seats
+    const autoFitScale = Math.min(
+        containerWidth / bounds.width,
+        0.8 // Maximum auto-fit scale for readability
+    );
+
+    // Use displayScale if set, otherwise use auto-fit
+    const effectiveScale = displayScale ?? autoFitScale;
 
     return (
         <div className="min-h-screen pt-24 pb-4 sm:pb-8 bg-[var(--color-bg-secondary)]">
@@ -209,8 +244,38 @@ export default function ResultPage() {
                 </div>
 
                 {/* Layout Preview */}
-                <div className="bg-background rounded-2xl border border-border shadow-lg p-6 mb-6 sm:mb-8">
-                    <h2 className="text-lg font-semibold mb-4 text-foreground">レイアウト</h2>
+                <div className="bg-background rounded-2xl border border-border shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <h2 className="text-lg font-semibold text-foreground">レイアウト</h2>
+                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7 sm:h-8 sm:w-8"
+                                onClick={() => setDisplayScale(Math.max(0.25, effectiveScale - 0.1))}
+                            >
+                                <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                            <span className="text-xs sm:text-sm font-mono w-10 sm:w-14 text-center">{Math.round(effectiveScale * 100)}%</span>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7 sm:h-8 sm:w-8"
+                                onClick={() => setDisplayScale(Math.min(2, effectiveScale + 0.1))}
+                            >
+                                <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm"
+                                onClick={() => setDisplayScale(null)}
+                            >
+                                <Maximize2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                全体表示
+                            </Button>
+                        </div>
+                    </div>
 
                     {/* Debug info */}
                     {(!result.settings.seats || result.settings.seats.length === 0) && (
@@ -220,19 +285,20 @@ export default function ResultPage() {
                     )}
 
                     <div
-                        className="relative mx-auto rounded-xl bg-[var(--color-bg-secondary)] overflow-hidden border border-border"
+                        className="relative w-full rounded-xl bg-[var(--color-bg-secondary)] overflow-auto border border-border"
                         style={{
-                            width: "100%",
-                            maxWidth: maxDisplayWidth,
-                            aspectRatio: `${result.settings.canvasWidth} / ${result.settings.canvasHeight}`,
+                            maxHeight: "60vh",
                         }}
                     >
                         <div
-                            className="absolute inset-0 origin-top-left"
+                            className="relative origin-top-left bg-white rounded-lg"
                             style={{
-                                transform: `scale(${scale})`,
-                                width: result.settings.canvasWidth,
-                                height: result.settings.canvasHeight,
+                                transform: `scale(${effectiveScale})`,
+                                transformOrigin: 'top left',
+                                width: bounds.width,
+                                height: bounds.height,
+                                minWidth: bounds.width * effectiveScale,
+                                minHeight: bounds.height * effectiveScale,
                             }}
                         >
                             {result.settings.seats && result.settings.seats.map((seat) => {

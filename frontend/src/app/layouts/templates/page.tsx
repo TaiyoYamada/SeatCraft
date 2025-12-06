@@ -33,9 +33,14 @@ export default function TemplatesPage() {
     const handleContinue = () => {
         if (!selectedTemplate) return;
 
+        // 島型の場合は行×列で席数を自動計算
+        const effectiveSeatCount = selectedTemplate === "island"
+            ? islandRows * islandCols
+            : (selectedTemplate === "custom" ? 0 : seatCount);
+
         const seats = generateSeatsFromTemplate(
             selectedTemplate,
-            selectedTemplate === "custom" ? 0 : seatCount,
+            effectiveSeatCount,
             canvasWidth,
             canvasHeight,
             selectedTemplate === "island" ? { rows: islandRows, cols: islandCols } : undefined
@@ -98,69 +103,80 @@ export default function TemplatesPage() {
                                 </h2>
                                 <Card className="p-6">
                                     <div className="space-y-6">
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <label htmlFor="seatCount" className="text-sm font-medium">
-                                                    座席数
-                                                </label>
-                                                <span className="text-sm font-mono bg-secondary px-2 py-1 rounded">
-                                                    {seatCount}席
-                                                </span>
+                                        {/* 島型以外の場合のみ座席数スライダーを表示 */}
+                                        {selectedTemplate !== "island" && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <label htmlFor="seatCount" className="text-sm font-medium">
+                                                        座席数
+                                                    </label>
+                                                    <span className="text-sm font-mono bg-secondary px-2 py-1 rounded">
+                                                        {seatCount}席
+                                                    </span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    id="seatCount"
+                                                    min={2}
+                                                    max={MAX_MEMBERS}
+                                                    value={seatCount}
+                                                    onChange={(e) => handleSeatCountChange(Number(e.target.value))}
+                                                    className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                                                />
+                                                {members.length > seatCount && (
+                                                    <p className="text-xs text-destructive flex items-center gap-1">
+                                                        <Users className="w-3 h-3" />
+                                                        メンバー数({members.length})が座席数より多いです
+                                                    </p>
+                                                )}
                                             </div>
-                                            <input
-                                                type="range"
-                                                id="seatCount"
-                                                min={2}
-                                                max={MAX_MEMBERS}
-                                                value={seatCount}
-                                                onChange={(e) => handleSeatCountChange(Number(e.target.value))}
-                                                className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-                                            />
-                                            {members.length > seatCount && (
-                                                <p className="text-xs text-destructive flex items-center gap-1">
-                                                    <Users className="w-3 h-3" />
-                                                    メンバー数({members.length})が座席数より多いです
-                                                </p>
-                                            )}
-                                        </div>
+                                        )}
 
+                                        {/* 島型の場合は行と列の設定のみ表示 */}
                                         {selectedTemplate === "island" && (
-                                            <div className="grid grid-cols-2 gap-4 border-t border-border pt-6">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs text-muted-foreground block text-center">
-                                                        縦の席数
-                                                    </label>
-                                                    <div className="flex items-center justify-center gap-3">
-                                                        <Button
-                                                            variant="outline" size="sm"
-                                                            onClick={() => setIslandRows(Math.max(1, islandRows - 1))}
-                                                        >-</Button>
-                                                        <span className="w-8 text-center font-medium">{islandRows}</span>
-                                                        <Button
-                                                            variant="outline" size="sm"
-                                                            onClick={() => setIslandRows(Math.min(5, islandRows + 1))}
-                                                        >+</Button>
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs text-muted-foreground block text-center">
+                                                            縦の席数
+                                                        </label>
+                                                        <div className="flex items-center justify-center gap-3">
+                                                            <Button
+                                                                variant="outline" size="sm"
+                                                                onClick={() => setIslandRows(Math.max(1, islandRows - 1))}
+                                                            >-</Button>
+                                                            <span className="w-8 text-center font-medium">{islandRows}</span>
+                                                            <Button
+                                                                variant="outline" size="sm"
+                                                                onClick={() => setIslandRows(Math.min(5, islandRows + 1))}
+                                                            >+</Button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs text-muted-foreground block text-center">
+                                                            横の席数
+                                                        </label>
+                                                        <div className="flex items-center justify-center gap-3">
+                                                            <Button
+                                                                variant="outline" size="sm"
+                                                                onClick={() => setIslandCols(Math.max(1, islandCols - 1))}
+                                                            >-</Button>
+                                                            <span className="w-8 text-center font-medium">{islandCols}</span>
+                                                            <Button
+                                                                variant="outline" size="sm"
+                                                                onClick={() => setIslandCols(Math.min(5, islandCols + 1))}
+                                                            >+</Button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs text-muted-foreground block text-center">
-                                                        横の席数
-                                                    </label>
-                                                    <div className="flex items-center justify-center gap-3">
-                                                        <Button
-                                                            variant="outline" size="sm"
-                                                            onClick={() => setIslandCols(Math.max(1, islandCols - 1))}
-                                                        >-</Button>
-                                                        <span className="w-8 text-center font-medium">{islandCols}</span>
-                                                        <Button
-                                                            variant="outline" size="sm"
-                                                            onClick={() => setIslandCols(Math.min(5, islandCols + 1))}
-                                                        >+</Button>
-                                                    </div>
+                                                <div className="text-center p-3 bg-secondary/50 rounded-lg">
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        1島あたり {islandRows * islandCols} 席
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        島の数は自動調整されます
+                                                    </p>
                                                 </div>
-                                                <p className="col-span-2 text-center text-xs text-muted-foreground">
-                                                    1島あたり {islandRows * islandCols} 席 × 島の数を自動調整
-                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -183,7 +199,9 @@ export default function TemplatesPage() {
                                             <p className="text-sm text-muted-foreground mt-1">
                                                 {selectedTemplate === "custom"
                                                     ? "自由に配置を作成します"
-                                                    : `${seatCount}席のレイアウトを作成します`}
+                                                    : selectedTemplate === "island"
+                                                        ? `${islandRows * islandCols}席のレイアウトを作成します`
+                                                        : `${seatCount}席のレイアウトを作成します`}
                                             </p>
                                         </div>
                                         <Button
