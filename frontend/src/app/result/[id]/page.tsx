@@ -40,28 +40,57 @@ export default function ResultPage() {
 
     useEffect(() => {
         const fetchResult = async () => {
-            try {
-                // APIから取得を試みる
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-                if (apiUrl) {
-                    const response = await fetch(`${apiUrl}/result/${id}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setResult(data.layout);
-                        return;
+            // API URL が設定されていない場合
+            if (!apiUrl) {
+                // ローカルストレージからのみ取得
+                const stored = localStorage.getItem(`seatcraft-result-${id}`);
+                if (stored) {
+                    try {
+                        setResult(JSON.parse(stored));
+                    } catch {
+                        setError("ローカルデータの解析に失敗しました");
                     }
+                } else {
+                    setError("API が設定されていません。ローカルデータも見つかりません。");
                 }
+                setLoading(false);
+                return;
+            }
 
-                // ローカルストレージから取得
+            try {
+                // API から取得
+                const response = await fetch(`${apiUrl}/result/${id}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.layout) {
+                        setResult(data.layout);
+                    } else {
+                        setError("レイアウトデータが不正です");
+                    }
+                } else if (response.status === 404) {
+                    // API で見つからない場合、ローカルストレージを確認
+                    const stored = localStorage.getItem(`seatcraft-result-${id}`);
+                    if (stored) {
+                        setResult(JSON.parse(stored));
+                    } else {
+                        setError("この ID の結果はサーバーに保存されていません");
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    setError(errorData.message || `サーバーエラー: ${response.status}`);
+                }
+            } catch (err) {
+                console.error("Fetch error:", err);
+                // ネットワークエラーの場合、ローカルストレージを確認
                 const stored = localStorage.getItem(`seatcraft-result-${id}`);
                 if (stored) {
                     setResult(JSON.parse(stored));
                 } else {
-                    setError("結果が見つかりませんでした");
+                    setError("ネットワークエラーが発生しました。接続を確認してください。");
                 }
-            } catch (err) {
-                setError("結果の取得に失敗しました");
             } finally {
                 setLoading(false);
             }
@@ -96,58 +125,66 @@ export default function ResultPage() {
 
     if (error || !result) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
+            <div className="min-h-screen flex items-center justify-center px-4">
+                <div className="text-center max-w-md">
                     <div className="text-6xl mb-4">😢</div>
-                    <h1 className="text-2xl font-bold mb-2">結果が見つかりません</h1>
-                    <p className="text-[var(--text-muted)] mb-6">{error}</p>
-                    <Link href="/" className="btn btn-primary">
-                        トップへ戻る
-                    </Link>
+                    <h1 className="text-xl sm:text-2xl font-bold mb-2">結果が見つかりません</h1>
+                    <p className="text-[var(--text-muted)] mb-4 text-sm">{error}</p>
+                    <p className="text-xs text-[var(--text-muted)] mb-6">
+                        ID: {id}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                        <Link href="/" className="btn btn-primary">
+                            トップへ戻る
+                        </Link>
+                        <Link href="/craft" className="btn btn-secondary">
+                            新しく作成
+                        </Link>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen py-8">
+        <div className="min-h-screen py-4 sm:py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold">席配置結果</h1>
-                        <p className="text-[var(--text-muted)] mt-1">
+                        <h1 className="text-2xl sm:text-3xl font-bold">席配置結果</h1>
+                        <p className="text-[var(--text-muted)] mt-1 text-sm">
                             {new Date(result.createdAt).toLocaleString("ja-JP")}
                         </p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <button
                             onClick={handleCopyUrl}
-                            className="btn btn-secondary"
+                            className="btn btn-secondary text-sm"
                         >
                             {copied ? "✓ コピー済み" : "🔗 URLをコピー"}
                         </button>
-                        <Link href="/craft" className="btn btn-primary">
+                        <Link href="/craft" className="btn btn-primary text-sm">
                             編集する
                         </Link>
                     </div>
                 </div>
 
                 {/* Layout Preview */}
-                <div className="card mb-8">
+                <div className="card mb-6 sm:mb-8">
                     <h2 className="text-lg font-semibold mb-4">レイアウト</h2>
                     <div
                         className="relative mx-auto rounded-lg bg-[var(--secondary)] overflow-hidden"
                         style={{
                             width: "100%",
-                            maxWidth: result.settings.canvasWidth,
-                            height: result.settings.canvasHeight * 0.5,
+                            maxWidth: Math.min(result.settings.canvasWidth, 800),
+                            aspectRatio: `${result.settings.canvasWidth} / ${result.settings.canvasHeight}`,
                         }}
                     >
                         <div
                             className="absolute inset-0"
                             style={{
-                                transform: "scale(0.5)",
+                                transform: `scale(${Math.min(800 / result.settings.canvasWidth, 1)})`,
                                 transformOrigin: "0 0",
                             }}
                         >
@@ -157,8 +194,8 @@ export default function ResultPage() {
                                     <div
                                         key={seat.id}
                                         className={`absolute rounded-xl flex items-center justify-center ${member
-                                                ? "bg-[var(--primary)] text-white"
-                                                : "bg-[var(--card-bg)] border-2 border-dashed border-[var(--border)]"
+                                            ? "bg-[var(--primary)] text-white"
+                                            : "bg-[var(--card-bg)] border-2 border-dashed border-[var(--border)]"
                                             }`}
                                         style={{
                                             left: seat.position.x,
@@ -167,7 +204,7 @@ export default function ResultPage() {
                                             height: seat.size.height,
                                         }}
                                     >
-                                        <span className="text-sm font-medium text-center px-1 truncate">
+                                        <span className="text-xs sm:text-sm font-medium text-center px-1 truncate">
                                             {member ? member.nickname || member.name : seat.label || "空"}
                                         </span>
                                     </div>
@@ -180,22 +217,22 @@ export default function ResultPage() {
                 {/* Member List */}
                 <div className="card">
                     <h2 className="text-lg font-semibold mb-4">配置一覧</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                         {result.assignments.map((assignment) => {
                             const member = result.members.find((m) => m.id === assignment.memberId);
                             const seat = result.settings.seats.find((s) => s.id === assignment.seatId);
                             if (!member || !seat) return null;
 
                             return (
-                                <div key={assignment.seatId} className="p-4 rounded-lg bg-[var(--secondary)]">
+                                <div key={assignment.seatId} className="p-3 sm:p-4 rounded-lg bg-[var(--secondary)]">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-[var(--primary)] text-white flex items-center justify-center font-bold">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[var(--primary)] text-white flex items-center justify-center font-bold text-sm sm:text-base">
                                             {seat.label}
                                         </div>
-                                        <div>
-                                            <p className="font-medium">{member.name}</p>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium truncate">{member.name}</p>
                                             {member.nickname && (
-                                                <p className="text-sm text-[var(--text-muted)]">
+                                                <p className="text-xs sm:text-sm text-[var(--text-muted)] truncate">
                                                     {member.nickname}
                                                 </p>
                                             )}
