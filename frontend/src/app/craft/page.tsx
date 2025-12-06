@@ -112,7 +112,7 @@ export default function CraftPage() {
     };
 
     return (
-        <div className="h-[calc(100vh-4rem)] mt-16 flex flex-col">
+        <div className="fixed inset-0 top-16 flex flex-col">
             {/* Compact Toolbar */}
             <div className="bg-background border-b border-border p-2 sm:p-3 shadow-sm">
                 <div className="max-w-7xl mx-auto">
@@ -185,9 +185,9 @@ export default function CraftPage() {
                     </div>
 
                     {/* Mobile stats bar */}
-                    <div className="flex sm:hidden items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span className="bg-secondary px-2 py-1 rounded-full">座席: {seats.length}</span>
-                        <span className="bg-secondary px-2 py-1 rounded-full">配置: {assignments.length}/{members.length}</span>
+                    <div className="flex sm:hidden items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                        <span className="bg-secondary px-2 py-0.5 rounded-full">座席: {seats.length}</span>
+                        <span className="bg-secondary px-2 py-0.5 rounded-full">配置: {assignments.length}/{members.length}</span>
                     </div>
 
                     {/* Options panel (collapsible) */}
