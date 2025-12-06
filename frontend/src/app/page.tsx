@@ -242,10 +242,24 @@ export default function HomePage() {
             <p>© 2025 SeatCraft. All rights reserved.</p>
           </div>
           <div className="flex flex-wrap justify-center gap-8">
-            {/* <Link href="#" className="hover:text-[var(--color-accent)] transition-colors">利用規約</Link>
+            <Link href="#" className="hover:text-[var(--color-accent)] transition-colors">利用規約</Link>
             <Link href="#" className="hover:text-[var(--color-accent)] transition-colors">プライバシーポリシー</Link>
-            <Link href="#" className="hover:text-[var(--color-accent)] transition-colors">運営会社</Link> */}
-            <Link href="#" className="hover:text-[var(--color-accent)] transition-colors">お問い合わせ</Link>
+            <a
+              href="https://github.com/TaiyoYamada"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[var(--color-accent)] transition-colors"
+            >
+              運営会社
+            </a>
+            <a
+              href="https://forms.gle/SzFwmxeZJA9JnPPe6"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[var(--color-accent)] transition-colors"
+            >
+              お問い合わせ
+            </a>
           </div>
         </div>
       </footer>
