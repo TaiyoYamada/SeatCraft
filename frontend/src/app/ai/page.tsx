@@ -69,7 +69,7 @@ export default function AIConsultPage() {
     };
 
     return (
-        <div className="min-h-screen pt-16 bg-[var(--color-bg-secondary)] flex flex-col">
+        <div className="min-h-screen pt-20 bg-[var(--color-bg-secondary)] flex flex-col">
             {/* Header */}
             <div className="bg-background border-b border-border p-4 shadow-sm">
                 <div className="max-w-3xl mx-auto flex items-center gap-4">

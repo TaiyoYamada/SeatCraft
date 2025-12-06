@@ -56,7 +56,7 @@ export default function TemplatesPage() {
     };
 
     return (
-        <div className="min-h-screen pt-24 pb-8 bg-secondary/30">
+        <div className="min-h-screen pt-20 pb-8 bg-secondary/30">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
 
                 {/* Header */}
